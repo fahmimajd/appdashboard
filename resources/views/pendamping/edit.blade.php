@@ -15,7 +15,7 @@
         <h2 class="text-xl font-bold text-gray-800">Edit Akun: {{ $pendamping->nama }}</h2>
     </div>
 
-    <form action="{{ route('pendamping.update', $pendamping->nik) }}" method="POST">
+    <form action="{{ route('pendamping.update', $pendamping->id) }}" method="POST">
         @csrf
         @method('PUT')
 
@@ -25,7 +25,7 @@
                 <label for="nik" class="block text-sm font-medium text-gray-700 mb-2">NIK</label>
                 <input type="text" id="nik" name="nik" value="{{ old('nik', $pendamping->nik) }}" readonly
                        class="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed">
-                <p class="mt-1 text-xs text-gray-400">NIK tidak dapat diubah (Primary Key)</p>
+                <p class="mt-1 text-xs text-gray-400">NIK terdaftar sebagai identifier.</p>
             </div>
 
             <!-- Nama -->
@@ -51,8 +51,9 @@
                 <select id="role" name="role" 
                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200 @error('role') border-red-500 @enderror">
                     <option value="">-- Pilih Akses --</option>
-                    <option value="user" {{ old('role', strtolower($pendamping->akses)) == 'user' ? 'selected' : '' }}>User</option>
-                    <option value="operator" {{ old('role', strtolower($pendamping->akses)) == 'operator' ? 'selected' : '' }}>Operator</option>
+                    <option value="desa" {{ old('role', strtolower($pendamping->akses)) == 'desa' ? 'selected' : '' }}>Desa</option>
+                    <option value="pendamping" {{ old('role', strtolower($pendamping->akses)) == 'pendamping' ? 'selected' : '' }}>Pendamping</option>
+                    <option value="supervisor" {{ old('role', strtolower($pendamping->akses)) == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
                     <option value="admin" {{ old('role', strtolower($pendamping->akses)) == 'admin' ? 'selected' : '' }}>Admin</option>
                 </select>
                 @error('role')

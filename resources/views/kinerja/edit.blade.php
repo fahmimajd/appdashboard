@@ -16,9 +16,41 @@
         <p class="text-sm text-gray-500">Periode: {{ \Carbon\Carbon::create()->month($kinerja->bulan)->translatedFormat('F') }} {{ $kinerja->tahun }}</p>
     </div>
 
+    @if(auth()->user()->isPetugas())
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <p class="font-medium text-blue-800">Perubahan memerlukan approval</p>
+                <p class="text-sm text-blue-600">Perubahan yang Anda lakukan akan menunggu approval dari Pendamping sebelum diterapkan.</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if($kinerja->hasPendingApproval())
+    <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <p class="font-medium text-yellow-800">Ada {{ count($kinerja->getPendingFields()) }} field menunggu approval</p>
+                <p class="text-sm text-yellow-600">Field dengan tanda (⏳) memiliki nilai yang sedang menunggu approval. Nilai baru yang Anda masukkan akan menggantikan pengajuan sebelumnya.</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <form action="{{ route('kinerja.update', $kinerja->id) }}" method="POST" x-data="kinerjaForm()">
         @csrf
         @method('PUT')
+        <input type="hidden" name="petugas_id" value="{{ $kinerja->nik_petugas }}">
+        <input type="hidden" name="desa_id" value="{{ $kinerja->kode_desa }}">
+        <input type="hidden" name="bulan" value="{{ $kinerja->bulan }}">
+        <input type="hidden" name="tahun" value="{{ $kinerja->tahun }}">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
              <!-- Petugas & Periode Readonly -->
@@ -52,8 +84,12 @@
                     <input type="number" min="0" x-model.number="aktivasi_ikd" name="aktivasi_ikd" class="w-full rounded border-gray-300">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Total IKD Desa</label>
+                    <span class="block text-xs font-semibold text-gray-600 uppercase mb-1">Total IKD Desa</span>
                     <input type="number" min="0" x-model.number="ikd_desa" name="ikd_desa" class="w-full rounded border-gray-300">
+                </div>
+                 <div class="bg-blue-50 p-2 rounded border border-blue-100">
+                    <label class="block text-xs font-semibold text-blue-800 uppercase mb-1">Total Aktivasi IKD</label>
+                    <input type="number" min="0" name="total_aktivasi_ikd" value="{{ old('total_aktivasi_ikd', $kinerja->total_aktivasi_ikd ?? 0) }}" class="w-full rounded border-blue-300 font-bold text-blue-800">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Akta Kelahiran</label>
@@ -112,9 +148,17 @@
             jumlah_login: {{ old('jumlah_login', $kinerja->jumlah_login ?? 0) }},
             
             get total() {
-                return this.aktivasi_ikd + this.ikd_desa + 
+                // Rule: exclude ikd_desa and jumlah_login
+                return this.aktivasi_ikd + 
                        this.akta_kelahiran + this.akta_kematian + 
-                       this.pengajuan_kk + this.pengajuan_pindah + this.pengajuan_kia + this.jumlah_login;
+                       this.pengajuan_kk + this.pengajuan_pindah + this.pengajuan_kia;
+            },
+            
+            get total() {
+                // Rule: exclude ikd_desa and jumlah_login
+                return this.aktivasi_ikd + 
+                       this.akta_kelahiran + this.akta_kematian + 
+                       this.pengajuan_kk + this.pengajuan_pindah + this.pengajuan_kia;
             }
         }
     }

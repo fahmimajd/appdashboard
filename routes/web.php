@@ -4,12 +4,14 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WilayahController;
 use App\Http\Controllers\PendampingController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\PetugasController;
 use App\Http\Controllers\KinerjaController;
 use App\Http\Controllers\KependudukanController;
 use App\Http\Controllers\PelayananController;
 use App\Http\Controllers\SarprasController;
 use App\Http\Controllers\VpnController;
+use App\Http\Controllers\SasaranController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -32,6 +34,7 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/pelayanan-detail', [DashboardController::class, 'pelayananDetail'])->name('dashboard.pelayanan-detail');
 
     // Force Password Change
     Route::get('/change-password', [\App\Http\Controllers\Auth\ChangePasswordController::class, 'show'])->name('password.change');
@@ -58,6 +61,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/{nik}/toggle-status', [PendampingController::class, 'toggleStatus'])->name('toggle-status');
         Route::post('/{nik}/reset-password', [PendampingController::class, 'resetPassword'])->name('reset-password');
     });
+
+    // User Management (Admin only)
+    Route::middleware('role:Admin')->prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('/create', [UserController::class, 'create'])->name('create');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::get('/{id}', [UserController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/reset-password', [UserController::class, 'resetPassword'])->name('reset-password');
+    });
     
     // Petugas Management
     Route::prefix('petugas')->name('petugas.')->group(function () {
@@ -74,6 +89,7 @@ Route::middleware('auth')->group(function () {
     // Kinerja Petugas
     Route::prefix('kinerja')->name('kinerja.')->group(function () {
         Route::get('/', [KinerjaController::class, 'index'])->name('index');
+        Route::get('/pending', [KinerjaController::class, 'pending'])->name('pending');
         Route::get('/input', [KinerjaController::class, 'input'])->name('input');
         Route::get('/create', [KinerjaController::class, 'create'])->name('create');
         Route::post('/store', [KinerjaController::class, 'store'])->name('store');
@@ -83,6 +99,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}', [KinerjaController::class, 'update'])->name('update');
         Route::get('/{id}', [KinerjaController::class, 'show'])->name('show');
         Route::delete('/{id}', [KinerjaController::class, 'destroy'])->name('destroy');
+        // Approval routes
+        Route::post('/{id}/approve-field', [KinerjaController::class, 'approveField'])->name('approve-field');
+        Route::post('/{id}/reject-field', [KinerjaController::class, 'rejectField'])->name('reject-field');
+        Route::post('/{id}/approve-all', [KinerjaController::class, 'approveAll'])->name('approve-all');
+        Route::post('/{id}/reject-all', [KinerjaController::class, 'rejectAll'])->name('reject-all');
     });
     
     // Kependudukan
@@ -117,10 +138,26 @@ Route::middleware('auth')->group(function () {
     // VPN Desa
     Route::prefix('vpn')->name('vpn.')->group(function () {
         Route::get('/', [VpnController::class, 'index'])->name('index');
-        Route::get('/{kodeDesa}/edit', [VpnController::class, 'edit'])->name('edit');
-        Route::put('/{kodeDesa}', [VpnController::class, 'update'])->name('update');
+        Route::get('/create', [VpnController::class, 'create'])->name('create');
+        Route::post('/', [VpnController::class, 'store'])->name('store');
+        Route::get('/{id}', [VpnController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [VpnController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [VpnController::class, 'update'])->name('update');
+        Route::delete('/{id}', [VpnController::class, 'destroy'])->name('destroy');
     });
     
+    // Sasaran
+    // Belum Rekam
+    Route::get('sasaran/rekapitulasi', [\App\Http\Controllers\BelumRekamController::class, 'rekapitulasi'])->name('sasaran.rekapitulasi');
+    Route::resource('belum-rekam', \App\Http\Controllers\BelumRekamController::class)
+        ->only(['index'])
+        ->names('belum_rekam');
+
+    // Belum Akte
+    Route::resource('belum-akte', \App\Http\Controllers\BelumAkteController::class)
+        ->only(['index'])
+        ->names('belum_akte');
+
     // API endpoints for AJAX requests
     Route::prefix('api')->name('api.')->group(function () {
         Route::get('/kecamatan/{kodeKabupaten}', [WilayahController::class, 'apiKecamatan'])->name('kecamatan');

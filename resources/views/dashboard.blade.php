@@ -47,7 +47,7 @@
         </div>
 
         <!-- Pelayanan Bulan Ini -->
-        <div class="bg-gradient-to-br from-orange-500 to-orange-700 text-white rounded-xl p-6 shadow-lg">
+        <a href="{{ route('dashboard.pelayanan-detail') }}" class="bg-gradient-to-br from-orange-500 to-orange-700 text-white rounded-xl p-6 shadow-lg transform transition hover:scale-105">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm opacity-90">Pelayanan Bulan Ini</p>
@@ -57,7 +57,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Kependudukan Statistics -->
@@ -89,14 +89,51 @@
 
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Kinerja Trend Chart -->
+        <!-- Top 5 Perkecamatan Pendampingan -->
         <div class="card">
             <div class="mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">Trend Pelayanan (6 Bulan Terakhir)</h3>
-                <p class="text-sm text-gray-600">Total pelayanan per bulan</p>
+                <h3 class="text-lg font-semibold text-gray-800">Top 5 Perkecamatan Pendampingan</h3>
+                <p class="text-sm text-gray-600">Berdasarkan total pelayanan tahun ini</p>
             </div>
-            <div class="chart-container">
-                <canvas id="kinerjaChart"></canvas>
+            <div class="overflow-auto" style="max-height: 300px;">
+                <table class="table-auto w-full">
+                    <thead>
+                        <tr>
+                            <th>Ranking</th>
+                            <th>Kecamatan</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($topKecamatan as $index => $kecamatan)
+                        <tr>
+                            <td class="text-center">
+                                @if($index == 0)
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-white font-bold">1</span>
+                                @elseif($index == 1)
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-400 text-white font-bold">2</span>
+                                @elseif($index == 2)
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-600 text-white font-bold">3</span>
+                                @else
+                                    <span class="text-gray-600">{{ $index + 1 }}</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if(isset($kecamatan->nama_desa))
+                                    {{ $kecamatan->nama_desa }}
+                                @else
+                                    {{ $kecamatan->nama_kecamatan }}
+                                @endif
+                            </td>
+                            <td class="font-semibold">{{ number_format($kecamatan->total_pelayanan ?? 0) }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" class="text-center py-4">Belum ada data</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -176,23 +213,5 @@
 @endsection
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Kinerja Trend Chart
-    const kinerjaData = @json($kinerjaChart);
-    const ctx = document.getElementById('kinerjaChart').getContext('2d');
-    
-    window.chartHelpers.createLineChart(ctx, {
-        labels: kinerjaData.map(item => item.month),
-        datasets: [{
-            label: 'Total Pelayanan',
-            data: kinerjaData.map(item => item.total),
-            borderColor: window.chartHelpers.colors.primary,
-            backgroundColor: window.chartHelpers.colors.primary + '20',
-            fill: true,
-            tension: 0.4
-        }]
-    });
-});
-</script>
+{{-- No scripts needed for now --}}
 @endpush

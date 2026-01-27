@@ -8,6 +8,7 @@ use App\Models\PetugasDinas;
 use App\Models\WilayahDesa;
 use App\Models\WilayahKabupaten;
 use App\Models\WilayahKecamatan;
+use App\Models\Pendamping;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Pagination\Paginator;
@@ -22,10 +23,8 @@ class PetugasController extends Controller
     public function index(Request $request)
     {
         // Combine results from all 3 tables or filter based on request
-        // For simplicity and typical use, we might return a merged collection or just one type if filtered.
-        // Given the UI likely expects a list, we'll try to merge or handle 'jenis_petugas' filter strictly.
         
-        $jenis_petugas = $request->jenis_petugas ?? 'all';
+        $status_aktif = $request->status_aktif ?? 'all';
         $level_akses = $request->level_akses ?? 'all';
         $search = $request->search;
 
@@ -33,69 +32,89 @@ class PetugasController extends Controller
         $petugasKecamatan = collect();
         $petugasDinas = collect();
 
-        if ($jenis_petugas == 'all' || $jenis_petugas == '1') {
-            $query = Petugas::with(['desa', 'kecamatan', 'kabupaten']);
-            
-            if ($level_akses !== 'all') {
-                $query->where('level_akses', $level_akses);
-            }
-
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('nama', 'like', "%{$search}%")
-                      ->orWhere('nik', 'like', "%{$search}%")
-                      ->orWhereHas('desa', function($qDesa) use ($search) {
-                          $qDesa->where('nama_desa', 'like', "%{$search}%");
-                      });
-                });
-            }
-            $petugasDesa = $query->get()->map(function($item) {
-                $item->jenis_label = 'Desa';
-                return $item;
-            });
-        }
-
-        // Kecamatan and Dinas don't have level_akses column, so we exclude them if a level filter is active
-        if (($jenis_petugas == 'all' || $jenis_petugas == '2') && $level_akses == 'all') {
-            $query = PetugasKecamatan::with(['kecamatan']);
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('nama', 'like', "%{$search}%")
-                      ->orWhere('nik', 'like', "%{$search}%")
-                      ->orWhereHas('kecamatan', function($qKec) use ($search) {
-                          $qKec->where('nama_kecamatan', 'like', "%{$search}%");
-                      });
-                });
-            }
-            $petugasKecamatan = $query->get()->map(function($item) {
-                $item->jenis_label = 'Kecamatan';
-                // Mock missing relations for uniform view if needed
-                return $item;
-            });
-        }
-
-        if (($jenis_petugas == 'all' || $jenis_petugas == '3') && $level_akses == 'all') {
-            $query = PetugasDinas::with(['kabupaten']);
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('nama', 'like', "%{$search}%")
-                      ->orWhere('nik', 'like', "%{$search}%");
-                });
-            }
-            $petugasDinas = $query->get()->map(function($item) {
-                $item->jenis_label = 'Dinas';
-                return $item;
-            });
-        }
-
-        // Merge and paginate manual? Or just return view with separate collections?
-        // Let's merge for now, but pagination will be tricky. 
-        // Real implementation should probably refine this, but for now we sync structure.
-        $petugas = $petugasDesa->concat($petugasKecamatan)->concat($petugasDinas);
+        // 1. Petugas Desa
+        $queryDesa = Petugas::with(['desa', 'kecamatan', 'kabupaten'])
+            ->select('petugas.*'); // Select main table columns
         
-        // Manual pagination wrapper if view expects it, or just pass collection if view handles it.
-        // Assuming view uses $petugas->links(), we need a Paginator.
-        // For this task, I will stick to basic functionality.
+        // Enforce role filtering
+        $user = auth()->user();
+        if (!$user->isAdmin() && !$user->isSupervisor()) {
+             // Pendamping or Desa - Get all assigned desa codes
+             $desaCodes = Pendamping::where('nik', $user->nik)
+                 ->where('status_aktif', 'Aktif')
+                 ->pluck('kode_desa')
+                 ->filter()
+                 ->toArray();
+             
+             if (!empty($desaCodes)) {
+                 $queryDesa->whereIn('petugas.kode_desa', $desaCodes);
+             }
+        }
+
+        if ($status_aktif !== 'all') {
+            $queryDesa->where('petugas.status_aktif', $status_aktif);
+        }
+        if ($level_akses !== 'all') {
+            $queryDesa->where('petugas.level_akses', $level_akses);
+        }
+        if ($search) {
+            $queryDesa->leftJoin('wilayah_desa', 'petugas.kode_desa', '=', 'wilayah_desa.kode_desa')
+                      ->where(function($q) use ($search) {
+                          $q->where('petugas.nama', 'like', "%{$search}%")
+                            ->orWhere('petugas.nik', 'like', "%{$search}%")
+                            ->orWhere('wilayah_desa.nama_desa', 'like', "%{$search}%");
+                      });
+        }
+        $petugasDesa = $queryDesa->get()->map(function($item) {
+            $item->jenis_label = 'Desa';
+            return $item;
+        });
+
+        // 2. Petugas Kecamatan & 3. Petugas Dinas
+        if (($user->isAdmin() || $user->isSupervisor()) && $level_akses == 'all') {
+            // Petugas Kecamatan
+            $queryKec = PetugasKecamatan::with(['kecamatan'])
+                ->select('petugas_kecamatan.*');
+                
+            if ($status_aktif !== 'all') {
+                $queryKec->where('petugas_kecamatan.status_aktif', $status_aktif);
+            }
+            if ($search) {
+                $queryKec->leftJoin('wilayah_kecamatan', 'petugas_kecamatan.kode_kecamatan', '=', 'wilayah_kecamatan.kode_kecamatan')
+                         ->where(function($q) use ($search) {
+                             $q->where('petugas_kecamatan.nama', 'like', "%{$search}%")
+                               ->orWhere('petugas_kecamatan.nik', 'like', "%{$search}%")
+                               ->orWhere('wilayah_kecamatan.nama_kecamatan', 'like', "%{$search}%");
+                         });
+            }
+            $petugasKecamatan = $queryKec->get()->map(function($item) {
+                $item->jenis_label = 'Kecamatan';
+                $item->level_akses = 'Kecamatan'; // Visual helper
+                return $item;
+            });
+
+            // 3. Petugas Dinas
+            $queryDinas = PetugasDinas::with(['kabupaten'])
+                ->select('petugas_dinas.*');
+                
+            if ($status_aktif !== 'all') {
+                $queryDinas->where('petugas_dinas.status_aktif', $status_aktif);
+            }
+            if ($search) {
+                $queryDinas->where(function($q) use ($search) {
+                    $q->where('petugas_dinas.nama', 'like', "%{$search}%")
+                      ->orWhere('petugas_dinas.nik', 'like', "%{$search}%");
+                });
+            }
+            $petugasDinas = $queryDinas->get()->map(function($item) {
+                $item->jenis_label = 'Dinas';
+                $item->level_akses = 'Dinas'; // Visual helper
+                return $item;
+            });
+        }
+        
+        // Merge results
+        $petugas = $petugasDesa->concat($petugasKecamatan)->concat($petugasDinas);
         
         // Manual Pagination
         $page = Paginator::resolveCurrentPage() ?: 1;
@@ -192,9 +211,17 @@ class PetugasController extends Controller
     public function show($id)
     {
         // ID is NIK. We search in all 3.
-        $petugas = Petugas::find($id);
-        if (!$petugas) $petugas = PetugasKecamatan::find($id);
-        if (!$petugas) $petugas = PetugasDinas::find($id);
+        $petugas = Petugas::with(['desa.kecamatan'])->find($id);
+        
+        if ($petugas) {
+            // Visualize as 'Desa' for the view logic
+            $petugas->level_akses = 'Desa';
+        } else {
+            $petugas = PetugasKecamatan::with('kecamatan')->find($id);
+            if (!$petugas) {
+                $petugas = PetugasDinas::with('kabupaten')->find($id);
+            }
+        }
         
         if (!$petugas) abort(404);
 

@@ -38,7 +38,7 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'pendamping',
+            'provider' => 'users',
         ],
     ],
 
@@ -60,9 +60,9 @@ return [
     */
 
     'providers' => [
-        'pendamping' => [
+        'users' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Pendamping::class,
+            'model' => App\Models\User::class,
         ],
     ],
 

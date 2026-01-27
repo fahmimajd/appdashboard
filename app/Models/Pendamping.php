@@ -2,62 +2,74 @@
 
 namespace App\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class Pendamping extends Authenticatable
+class Pendamping extends Model
 {
     protected $table = 'pendamping';
-    protected $primaryKey = 'nik';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     public $timestamps = false;
 
     protected $fillable = [
+        'id',
         'nik',
         'kode_desa',
+        'kode_kecamatan',
         'nama',
         'nomor_ponsel',
         'jenis_kelamin',
-        'status_aktif',
+        // Note: password, akses, status_aktif are now in users table
+        // but kept here for backward compatibility during transition
         'password',
         'akses',
-        // last_password_change removed per db.md
+        'status_aktif',
     ];
 
     protected $hidden = [
         'password',
     ];
 
-    protected $casts = [
-        'password' => 'hashed', // Laravel 10+
-    ];
-
-    public function getAuthPassword()
+    public function getKodeDesaAttribute($value)
     {
-        return $this->password;
+        return trim($value);
     }
 
+    public function getKodeKecamatanAttribute($value)
+    {
+        return trim($value);
+    }
+
+    /**
+     * Get the desa relation.
+     */
     public function desa(): BelongsTo
     {
         return $this->belongsTo(WilayahDesa::class, 'kode_desa', 'kode_desa');
     }
 
-    public function isActive(): bool
+    /**
+     * Get the user account associated with this pendamping.
+     */
+    public function user(): HasOne
     {
-        return $this->status_aktif === 'Aktif';
+        return $this->hasOne(User::class, 'nik', 'nik');
     }
 
-    public function isAdmin(): bool
-    {
-        return $this->akses === 'Admin';
-    }
-
+    /**
+     * Scope for active pendamping.
+     */
     public function scopeActive($query)
     {
         return $query->where('status_aktif', 'Aktif');
     }
 
+    /**
+     * Scope by akses/role.
+     */
     public function scopeByAkses($query, $akses)
     {
         return $query->where('akses', $akses);

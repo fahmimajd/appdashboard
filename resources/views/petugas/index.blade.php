@@ -10,14 +10,13 @@
         <!-- Filter & Search -->
         <form action="{{ route('petugas.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 flex-1">
             <div class="w-full md:w-64">
-                <select name="jenis_petugas" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
-                    <option value="all">Semua Jenis</option>
-                    <option value="1" {{ request('jenis_petugas') == '1' ? 'selected' : '' }}>Petugas Desa</option>
-                    <option value="2" {{ request('jenis_petugas') == '2' ? 'selected' : '' }}>Petugas Kecamatan</option>
-                    <option value="3" {{ request('jenis_petugas') == '3' ? 'selected' : '' }}>Petugas Dinas</option>
+                <select name="status_aktif" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
+                    <option value="all">Semua Status</option>
+                    <option value="Aktif" {{ request('status_aktif') == 'Aktif' ? 'selected' : '' }}>Aktif</option>
+                    <option value="Tidak Aktif" {{ request('status_aktif') == 'Tidak Aktif' ? 'selected' : '' }}>Tidak Aktif</option>
                 </select>
             </div>
-            <div class="w-full md:w-48">
+            <div class="w-full md:w-32">
                 <select name="level_akses" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
                     <option value="all">Semua Level</option>
                     @foreach(range(0, 5) as $lvl)
@@ -38,7 +37,7 @@
 
         <!-- Actions -->
         <div>
-            @if(request('search') || request('jenis_petugas') != 'all' || request('level_akses') != 'all')
+            @if(request('search') || request('status_aktif') != 'all' || request('level_akses') != 'all')
                 <a href="{{ route('petugas.index') }}" class="mr-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition duration-200">
                     Reset
                 </a>
@@ -62,6 +61,7 @@
                     <th class="px-4 py-3">No. HP</th>
                     <th class="px-4 py-3">Level Akses</th>
                     <th class="px-4 py-3">Desa</th>
+                    <th class="px-4 py-3">Kecamatan</th>
                     <th class="px-4 py-3">Tgl Mulai Akses</th>
                     <th class="px-4 py-3">Status</th>
                     <th class="px-4 py-3 text-right">Aksi</th>
@@ -108,6 +108,9 @@
                             @else
                                 -
                             @endif
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                             {{ $p->kecamatan->nama_kecamatan ?? '-' }}
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-500">
                             {{ $p->tanggal_mulai_aktif ?? '-' }}

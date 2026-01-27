@@ -13,20 +13,27 @@ class VpnController extends Controller
      */
     public function index(Request $request)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+        }
+
         $query = VpnDesa::with('desa.kecamatan');
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where('username', 'like', "%{$search}%");
+            $query->leftJoin('wilayah_desa', 'vpn_desa.kode_desa', '=', 'wilayah_desa.kode_desa')
+                  ->where(function($q) use ($search) {
+                      $q->where('vpn_desa.username', 'like', "%{$search}%")
+                        ->orWhere('wilayah_desa.nama_desa', 'like', "%{$search}%");
+                  })
+                  ->select('vpn_desa.*'); // Ensure we get VPN models
         }
 
         if ($request->has('desa_id') && $request->desa_id != 'all') {
-            $query->where('kode_desa', function($q) use ($request) {
-                return WilayahDesa::where('id', $request->desa_id)->value('kode_desa');
-            });
+            $query->where('kode_desa', $request->desa_id);
         }
         
-        $vpns = $query->paginate(15);
+        $vpns = $query->paginate(15)->withQueryString();
         $desas = WilayahDesa::orderBy('nama_desa')->get();
 
         return view('vpn.index', compact('vpns', 'desas'));
@@ -35,8 +42,14 @@ class VpnController extends Controller
     /**
      * Show the form for creating a new resource.
      */
+    /**
+     * Show the form for creating a new resource.
+     */
     public function create()
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
         $desas = WilayahDesa::orderBy('nama_desa')->get();
         return view('vpn.create', compact('desas'));
     }
@@ -46,8 +59,11 @@ class VpnController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
         $validated = $request->validate([
-            'desa_id' => 'required|exists:wilayah_desa,id',
+            'desa_id' => 'required|exists:wilayah_desa,kode_desa',
             'username' => 'required|string|max:150',
             'password' => 'required|string|min:6', // Virtual password input
             'jenis_vpn' => 'nullable|in:PPTP,L2TP,OpenVPN,WireGuard',
@@ -63,7 +79,7 @@ class VpnController extends Controller
         $data = [
             'kode_desa' => $desa->kode_desa,
             'username' => $validated['username'],
-            'password_hash' => bcrypt($validated['password']),
+            'password' => $validated['password'], // Storing as plain text per requirement
             'jenis_vpn' => $validated['jenis_vpn'] ?? 'OpenVPN',
         ];
 
@@ -78,6 +94,9 @@ class VpnController extends Controller
      */
     public function show($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
         $vpn = VpnDesa::with('desa')->findOrFail($id);
         return view('vpn.show', compact('vpn'));
     }
@@ -87,6 +106,9 @@ class VpnController extends Controller
      */
     public function edit($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
         $vpn = VpnDesa::with('desa')->findOrFail($id);
         $desas = WilayahDesa::orderBy('nama_desa')->get();
         return view('vpn.edit', compact('vpn', 'desas'));
@@ -97,6 +119,9 @@ class VpnController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
         $vpn = VpnDesa::findOrFail($id);
 
         $validated = $request->validate([
@@ -112,7 +137,7 @@ class VpnController extends Controller
         ];
         
         if ($request->filled('password')) {
-            $data['password_hash'] = bcrypt($request->password);
+            $data['password'] = $request->password; // Storing as plain text
         }
 
         $vpn->update($data);
@@ -126,6 +151,9 @@ class VpnController extends Controller
      */
     public function destroy($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
         $vpn = VpnDesa::findOrFail($id);
         $vpn->delete();
 

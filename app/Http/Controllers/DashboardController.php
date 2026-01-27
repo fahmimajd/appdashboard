@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WilayahDesa;
+use App\Models\WilayahKecamatan;
 use App\Models\Petugas;
 use App\Models\Pendamping;
 use App\Models\KinerjaPetugas;
@@ -22,7 +23,7 @@ class DashboardController extends Controller
         $stats = [
             'total_desa' => WilayahDesa::count(),
             'total_petugas_aktif' => Petugas::where('status_aktif', 'Aktif')->count(),
-            'total_pendamping_aktif' => Pendamping::where('status_aktif', 'Aktif')->distinct('nama')->count('nama'),
+            'total_pendamping_aktif' => Pendamping::where('status_aktif', 'Aktif')->distinct('nik')->count('nik'),
             'total_pelayanan_bulan_ini' => $this->getPelayananBulanIni(),
         ];
 
@@ -43,8 +44,11 @@ class DashboardController extends Controller
         // Get top performing desa (by total pelayanan)
         $topDesa = $this->getTopPerformingDesa();
 
-        // Get monthly kinerja trend for chart (last 6 months)
-        $kinerjaChart = $this->getKinerjaChartData();
+        // Get top performing kecamatan (by total pelayanan) - Replaces Chart
+        $topKecamatan = $this->getTopPerformingKecamatan();
+        
+        // Chart data no longer needed as per update1.md point 9
+        // $kinerjaChart = $this->getKinerjaChartData();
 
         // Get latest Kependudukan Stats
         $latestSemester = KependudukanSemester::max('kode_semester');
@@ -68,7 +72,7 @@ class DashboardController extends Controller
             'recentPelayanan',
             'kinerjaBulanIni',
             'topDesa',
-            'kinerjaChart',
+            'topKecamatan', // New
             'kependudukanStats'
         ));
     }
@@ -83,7 +87,7 @@ class DashboardController extends Controller
 
         return KinerjaPetugas::where('tahun', $currentYear)
             ->where('bulan', $currentMonth)
-            ->sum(DB::raw('aktivasi_ikd + ikd_desa + akta_kelahiran + akta_kematian + pengajuan_kk + pengajuan_pindah + pengajuan_kia'));
+            ->sum(DB::raw(KinerjaPetugas::sqlTotalPelayanan()));
     }
 
     /**
@@ -93,42 +97,57 @@ class DashboardController extends Controller
     {
         $currentYear = now()->year;
 
-        return WilayahDesa::withCount([
-            'kinerja as total_pelayanan' => function ($query) use ($currentYear) {
-                $query->where('tahun', $currentYear)
-                    ->select(DB::raw('SUM(aktivasi_ikd + ikd_desa + akta_kelahiran + akta_kematian + pengajuan_kk + pengajuan_pindah + pengajuan_kia)'));
-            }
+        return WilayahDesa::addSelect(['total_pelayanan' => KinerjaPetugas::selectRaw(
+                'COALESCE(SUM(' . KinerjaPetugas::sqlTotalPelayanan() . '), 0)'
+            )
+            ->whereColumn('kode_desa', 'wilayah_desa.kode_desa')
+            ->where('tahun', $currentYear)
         ])
         ->with('kecamatan.kabupaten')
-        ->orderBy('total_pelayanan', 'desc')
+        ->orderByDesc('total_pelayanan')
         ->limit($limit)
         ->get();
     }
 
     /**
-     * Get kinerja chart data for last 6 months
+     * Get top performing kecamatan
      */
-    private function getKinerjaChartData()
+    private function getTopPerformingKecamatan($limit = 5)
     {
-        $data = [];
-        $currentDate = now();
+        $currentYear = now()->year;
+        $user = auth()->user();
 
-        for ($i = 5; $i >= 0; $i--) {
-            $date = $currentDate->copy()->subMonths($i);
-            $year = $date->year;
-            $month = $date->month;
-
-            $totalPelayanan = KinerjaPetugas::where('tahun', $year)
-                ->where('bulan', $month)
-                ->sum(DB::raw('aktivasi_ikd + ikd_desa + akta_kelahiran + akta_kematian + pengajuan_kk + pengajuan_pindah + pengajuan_kia'));
-
-            $data[] = [
-                'month' => $date->format('M Y'),
-                'total' => $totalPelayanan
-            ];
+        // For Pendamping/Desa/Petugas: show top desa within their kecamatan
+        if ($user && !$user->isAdmin() && !$user->isSupervisor()) {
+            if ($user->kode_desa) {
+                $desa = WilayahDesa::where('kode_desa', $user->kode_desa)->first();
+                if ($desa && $desa->kode_kecamatan) {
+                    // Return top desa in their kecamatan
+                    return WilayahDesa::addSelect(['total_pelayanan' => KinerjaPetugas::selectRaw(
+                            'COALESCE(SUM(' . KinerjaPetugas::sqlTotalPelayanan() . '), 0)'
+                        )
+                        ->whereColumn('kode_desa', 'wilayah_desa.kode_desa')
+                        ->where('tahun', $currentYear)
+                    ])
+                    ->where('kode_kecamatan', $desa->kode_kecamatan)
+                    ->with('kecamatan')
+                    ->orderByDesc('total_pelayanan')
+                    ->limit($limit)
+                    ->get();
+                }
+            }
         }
 
-        return $data;
+        // For Admin/Supervisor: show top kecamatan
+        return WilayahKecamatan::addSelect(['total_pelayanan' => KinerjaPetugas::selectRaw(
+                'COALESCE(SUM(' . KinerjaPetugas::sqlTotalPelayanan() . '), 0)'
+            )
+            ->whereColumn('kode_kecamatan', 'wilayah_kecamatan.kode_kecamatan')
+            ->where('tahun', $currentYear)
+        ])
+        ->orderByDesc('total_pelayanan')
+        ->limit($limit)
+        ->get();
     }
 
     /**
@@ -139,10 +158,40 @@ class DashboardController extends Controller
         $stats = [
             'total_desa' => WilayahDesa::count(),
             'total_petugas_aktif' => Petugas::where('status_aktif', 'Aktif')->count(),
-            'total_pendamping_aktif' => Pendamping::where('status_aktif', 'Aktif')->count(),
+            'total_pendamping_aktif' => Pendamping::where('status_aktif', 'Aktif')->distinct('nik')->count('nik'),
             'total_pelayanan_bulan_ini' => $this->getPelayananBulanIni(),
         ];
 
         return response()->json($stats);
+    }
+    /**
+     * Display detailed monthly service statistics
+     */
+    public function pelayananDetail()
+    {
+        $currentYear = now()->year;
+        $currentMonth = now()->month;
+
+        $pageTitle = 'Detail Pelayanan Bulan Ini';
+        $period = now()->locale('id')->isoFormat('MMMM YYYY');
+
+        $data = KinerjaPetugas::select(
+                'kode_desa',
+                DB::raw('SUM(aktivasi_ikd) as total_aktivasi_ikd'),
+                DB::raw('SUM(akta_kelahiran) as total_akta_kelahiran'),
+                DB::raw('SUM(akta_kematian) as total_akta_kematian'),
+                DB::raw('SUM(pengajuan_kk) as total_pengajuan_kk'),
+                DB::raw('SUM(pengajuan_pindah) as total_pengajuan_pindah'),
+                DB::raw('SUM(pengajuan_kia) as total_pengajuan_kia'),
+                DB::raw('SUM(' . KinerjaPetugas::sqlTotalPelayanan() . ') as total_pelayanan')
+            )
+            ->where('tahun', $currentYear)
+            ->where('bulan', $currentMonth)
+            ->with('desa.kecamatan')
+            ->groupBy('kode_desa')
+            ->orderByDesc('total_pelayanan')
+            ->get();
+
+        return view('dashboard.pelayanan-detail', compact('data', 'pageTitle', 'period'));
     }
 }

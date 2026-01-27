@@ -37,6 +37,12 @@ class WilayahDesa extends Model
         'jumlah_dusun' => 'integer',
     ];
 
+    public function getKodeDesaAttribute($value)
+    {
+        return trim($value);
+    }
+
+
     /**
      * Get the kecamatan that owns this desa
      */
@@ -91,5 +97,28 @@ class WilayahDesa extends Model
     public function kependudukan(): HasMany
     {
         return $this->hasMany(KependudukanSemester::class, 'kode_desa', 'kode_desa');
+    }
+    /**
+     * Get all sasaran data for this desa
+     */
+    public function sasaran(): HasMany
+    {
+        return $this->hasMany(Sasaran::class, 'kode_desa', 'kode_desa');
+    }
+
+    /**
+     * Get all belum rekam data for this desa
+     */
+    public function belumRekam(): HasMany
+    {
+        return $this->hasMany(BelumRekam::class, 'kode_desa', 'kode_desa');
+    }
+
+    /**
+     * Get all belum akte data for this desa
+     */
+    public function belumAkte(): HasMany
+    {
+        return $this->hasMany(BelumAkte::class, 'kode_desa', 'kode_desa');
     }
 }

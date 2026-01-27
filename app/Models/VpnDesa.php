@@ -20,7 +20,7 @@ class VpnDesa extends Model
     ];
 
     protected $hidden = [
-        'password',
+        // 'password', // Password is now plain text for display
     ];
 
     public function desa(): BelongsTo

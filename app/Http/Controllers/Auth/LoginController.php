@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pendamping;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -68,14 +68,7 @@ class LoginController extends Controller
 
         // Fallback: Check manual password (plain text)
         // Only if Auth::attempt failed (which fails for plain text if DB expects bcrypt)
-        $user = Pendamping::where('nik', $request->nik)->first();
-        
-        // Use getAttributes to get raw password value without casting checks if possible,
-        // but Model casts 'password' => 'hashed', so accessing $user->password might try to hash/compare incorrectly?
-        // Actually, $user->password access on a model with 'hashed' cast usually returns nothing useful for direct comparison 
-        // OR it might return the hashed object.
-        // Better to query raw or rely on the fact that if it WAS hashed properly, Auth::attempt would adhere.
-        // If it failed, it might be plain text.
+        $user = User::where('nik', $request->nik)->first();
         
         if ($user && $user->getAttributes()['password'] === $request->password) {
             // It matches plain text!

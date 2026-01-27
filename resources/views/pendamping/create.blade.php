@@ -52,8 +52,9 @@
                 <select id="role" name="role" 
                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200 @error('role') border-red-500 @enderror">
                     <option value="">-- Pilih Akses --</option>
-                    <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
-                    <option value="operator" {{ old('role') == 'operator' ? 'selected' : '' }}>Operator</option>
+                    <option value="desa" {{ old('role') == 'desa' ? 'selected' : '' }}>Desa</option>
+                    <option value="pendamping" {{ old('role') == 'pendamping' ? 'selected' : '' }}>Pendamping</option>
+                    <option value="supervisor" {{ old('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
                     <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                 </select>
                 @error('role')

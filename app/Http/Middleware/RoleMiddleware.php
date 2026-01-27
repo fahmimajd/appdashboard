@@ -19,13 +19,12 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        // Check if user is Pendamping and has required access level
-        if ($request->user() instanceof \App\Models\Pendamping) {
-            if ($role === 'Admin' && $request->user()->akses !== 'Admin') {
-                abort(403, 'Unauthorized action.');
-            }
+        // Check if user has required access level
+        if ($role === 'Admin' && $request->user()->akses !== 'Admin') {
+            abort(403, 'Unauthorized action.');
         }
 
         return $next($request);
     }
 }
+

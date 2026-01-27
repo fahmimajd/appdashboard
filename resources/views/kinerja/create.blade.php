@@ -167,6 +167,11 @@
                             <input type="number" name="jumlah_login" id="jumlah_login" value="{{ old('jumlah_login', 0) }}" min="0" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
                             <p class="text-xs text-gray-500 mt-1">Tidak dihitung dalam total pelayanan</p>
                         </div>
+
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                            <label for="total_aktivasi_ikd" class="block text-sm font-medium text-blue-800 mb-1">Total Aktivasi IKD</label>
+                            <input type="number" name="total_aktivasi_ikd" id="total_aktivasi_ikd" value="{{ old('total_aktivasi_ikd', 0) }}" min="0" class="w-full rounded-lg border-blue-300 focus:border-blue-500 focus:ring focus:ring-blue-200 font-bold text-blue-800">
+                        </div>
                     </div>
                 </div>
 
@@ -191,7 +196,10 @@ function calculateTotal() {
     let inputs = document.querySelectorAll('.service-input');
     let total = 0;
     inputs.forEach(input => {
-        total += parseInt(input.value) || 0;
+        // Exclude ikd_desa from total calculation based on new requirement
+        if(input.id !== 'ikd_desa') {
+            total += parseInt(input.value) || 0;
+        }
     });
     
     document.getElementById('total_display').innerText = total;

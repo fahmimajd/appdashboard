@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KependudukanSemester;
 use App\Models\WilayahDesa;
+use App\Models\Pendamping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -26,26 +27,35 @@ class KependudukanController extends Controller
         }
 
         if ($request->has('search') && $request->search) {
-             $query->whereHas('desa', function($q) use ($request) {
-                 $q->where('nama_desa', 'like', '%' . $request->search . '%');
-             });
+             $query->leftJoin('wilayah_desa', 'kependudukan_semester.kode_desa', '=', 'wilayah_desa.kode_desa')
+                   ->where('wilayah_desa.nama_desa', 'like', '%' . $request->search . '%')
+                   ->select('kependudukan_semester.*');
         }
 
-        if ($request->has('desa_id') && $request->desa_id != 'all') {
+        // Access Control
+        $user = auth()->user();
+        if (!$user->isAdmin() && !$user->isSupervisor()) {
+            // Get all desa codes assigned to this user's NIK
+            $desaCodes = Pendamping::where('nik', $user->nik)
+                ->where('status_aktif', 'Aktif')
+                ->pluck('kode_desa')
+                ->filter()
+                ->toArray();
+            
+            if (!empty($desaCodes)) {
+                $query->whereIn('kode_desa', $desaCodes);
+            }
+        } elseif ($request->has('desa_id') && $request->desa_id != 'all') {
             $query->where('kode_desa', function($q) use ($request) {
-                // Assuming kode_desa in request is the ID, but model stores codec (20 chars)
-                // Need to map ID to kode if request sends ID.
-                // Or if request sends kode_desa directly. 
-                // Let's assume request sends ID for consistency, we need to find kode.
                 $desa = WilayahDesa::find($request->desa_id);
                 if ($desa) return $desa->kode_desa;
                 return '0';
             });
-            // Alternative: Filter by real kode_desa if passed
         }
 
         $data = $query->orderBy('kode_semester', 'desc')
-                      ->paginate(15);
+                      ->paginate(15)
+                      ->withQueryString();
                       
         // Get list of unique years for filter
         // In Oracle we might use different syntax for distinct year

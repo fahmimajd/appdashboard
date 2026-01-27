@@ -30,7 +30,7 @@ class WilayahController extends Controller
             $query->where('kecamatan_id', $request->kecamatan_id);
         }
 
-        $desas = $query->paginate(15);
+        $desas = $query->paginate(15)->withQueryString();
         $kecamatans = WilayahKecamatan::orderBy('nama_kecamatan')->get();
 
         return view('wilayah.index', compact('desas', 'kecamatans'));
