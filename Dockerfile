@@ -14,9 +14,13 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libaio-dev \
+    libaio1t64 \
     wget \
     build-essential \
     libldap-dev 
+
+# Oracle Instant Client expects libaio.so.1; Debian Trixie ships libaio.so.1t64.
+RUN ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
 
 # Install Oracle Instant Client
 RUN mkdir /opt/oracle
