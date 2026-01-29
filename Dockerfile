@@ -13,10 +13,10 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    libaio1 \
+    libaio-dev \
     wget \
     build-essential \
-    libldap2-dev 
+    libldap-dev 
 
 # Install Oracle Instant Client
 RUN mkdir /opt/oracle

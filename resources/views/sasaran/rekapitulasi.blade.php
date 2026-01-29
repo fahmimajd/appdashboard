@@ -4,8 +4,9 @@
 @section('subtitle', 'Ringkasan data belum rekam dan belum akte per desa')
 
 @section('content')
-<div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-6">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+<div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 h-full flex flex-col">
+    <!-- Header & Filter - Fixed -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 flex-shrink-0">
         <h3 class="text-lg font-semibold text-gray-800">Data Sasaran Per Desa</h3>
         
         <form action="{{ route('sasaran.rekapitulasi') }}" method="GET" class="flex flex-col md:flex-row gap-4 w-full">
@@ -38,7 +39,9 @@
             @endif
         </form>
     </div>
-    <div class="overflow-x-auto">
+    
+    <!-- Table Container - Scrollable -->
+    <div class="flex-1 overflow-auto min-h-0">
         <table class="w-full text-left border-collapse">
             <thead class="sticky top-0 bg-gray-50 z-10">
                 <tr class="border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">

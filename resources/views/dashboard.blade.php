@@ -209,6 +209,58 @@
             </table>
         </div>
     </div>
+
+    <!-- Export Activity Logs (Admin Only) -->
+    @if(auth()->user()->isAdmin() && count($exportLogs) > 0)
+    <div class="card">
+        <div class="mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Aktivitas Export</h3>
+            <p class="text-sm text-gray-600">10 aktivitas export terakhir</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table-auto w-full">
+                <thead>
+                    <tr>
+                        <th>Waktu</th>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Jenis Export</th>
+                        <th>Jumlah Data</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($exportLogs as $log)
+                    <tr>
+                        <td class="text-sm">{{ $log->created_at->format('d/m/Y H:i:s') }}</td>
+                        <td>{{ $log->user_name }}</td>
+                        <td>
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                @if($log->user_role === 'Admin') bg-red-100 text-red-800
+                                @elseif($log->user_role === 'Supervisor') bg-blue-100 text-blue-800
+                                @else bg-green-100 text-green-800
+                                @endif">
+                                {{ $log->user_role }}
+                            </span>
+                        </td>
+                        <td>
+                            @if($log->export_type === 'belum_rekam')
+                                <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">Belum Rekam</span>
+                            @elseif($log->export_type === 'belum_akte')
+                                <span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">Belum Akte</span>
+                            @else
+                                <span class="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">{{ $log->export_type }}</span>
+                            @endif
+                        </td>
+                        <td class="font-semibold">{{ number_format($log->record_count) }}</td>
+                        <td class="text-sm text-gray-500">{{ $log->ip_address }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 </div>
 @endsection
 

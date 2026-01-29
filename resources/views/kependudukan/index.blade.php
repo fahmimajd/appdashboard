@@ -4,9 +4,9 @@
 @section('subtitle', 'Statistik kependudukan per semester')
 
 @section('content')
-<div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-    <!-- Header Tools -->
-    <div class="flex flex-col lg:flex-row md:items-center justify-between gap-4 mb-6">
+<div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 h-full flex flex-col">
+    <!-- Header Tools - Fixed -->
+    <div class="flex flex-col lg:flex-row md:items-center justify-between gap-4 mb-6 flex-shrink-0">
         <!-- Filter Form -->
         <form action="{{ route('kependudukan.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 flex-1 flex-wrap">
             <div class="w-full md:w-32">
@@ -55,11 +55,11 @@
         </div>
     </div>
 
-    <!-- Table -->
-    <div class="overflow-x-auto">
+    <!-- Table Container - Scrollable -->
+    <div class="flex-1 overflow-auto min-h-0">
         <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+            <thead class="sticky top-0 bg-gray-50 z-10">
+                <tr class="border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     <th class="px-4 py-3">Periode</th>
                     <th class="px-4 py-3">Wilayah</th>
                     <th class="px-4 py-3 text-center">Penduduk (L/P)</th>
@@ -125,8 +125,8 @@
         </table>
     </div>
 
-    <!-- Pagination -->
-    <div class="mt-4">
+    <!-- Pagination - Fixed at bottom -->
+    <div class="mt-4 flex-shrink-0">
         {{ $data->links() }}
     </div>
 </div>

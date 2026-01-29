@@ -149,11 +149,13 @@ Route::middleware('auth')->group(function () {
     // Sasaran
     // Belum Rekam
     Route::get('sasaran/rekapitulasi', [\App\Http\Controllers\BelumRekamController::class, 'rekapitulasi'])->name('sasaran.rekapitulasi');
+    Route::get('belum-rekam/export', [\App\Http\Controllers\BelumRekamController::class, 'export'])->name('belum_rekam.export');
     Route::resource('belum-rekam', \App\Http\Controllers\BelumRekamController::class)
         ->only(['index'])
         ->names('belum_rekam');
 
     // Belum Akte
+    Route::get('belum-akte/export', [\App\Http\Controllers\BelumAkteController::class, 'export'])->name('belum_akte.export');
     Route::resource('belum-akte', \App\Http\Controllers\BelumAkteController::class)
         ->only(['index'])
         ->names('belum_akte');

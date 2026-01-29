@@ -9,6 +9,7 @@ use App\Models\Pendamping;
 use App\Models\KinerjaPetugas;
 use App\Models\KependudukanSemester;
 use App\Models\HeaderPelayanan;
+use App\Models\ExportLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -67,13 +68,22 @@ class DashboardController extends Controller
             ];
         }
 
+        // Get export activity logs (only for Admin)
+        $exportLogs = [];
+        if (auth()->user()->isAdmin()) {
+            $exportLogs = ExportLog::orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get();
+        }
+
         return view('dashboard', compact(
             'stats',
             'recentPelayanan',
             'kinerjaBulanIni',
             'topDesa',
-            'topKecamatan', // New
-            'kependudukanStats'
+            'topKecamatan',
+            'kependudukanStats',
+            'exportLogs'
         ));
     }
 

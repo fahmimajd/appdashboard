@@ -163,9 +163,9 @@
         </aside>
 
         <!-- Main Content -->
-        <main :class="open ? 'ml-64' : 'ml-20'" class="flex-1 transition-all duration-300">
+        <main :class="open ? 'ml-64' : 'ml-20'" class="flex-1 transition-all duration-300 h-screen flex flex-col">
             <!-- Top Navbar -->
-            <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-9">
+            <header class="bg-white shadow-sm border-b border-gray-200 flex-shrink-0 z-10">
                 <div class="px-6 py-4">
                     <div class="flex items-center justify-between">
                         <div>
@@ -182,8 +182,8 @@
                 </div>
             </header>
 
-            <!-- Page Content -->
-            <div class="p-6">
+            <!-- Page Content - Scrollable Area -->
+            <div class="p-6 flex-1 overflow-y-auto">
                 @if(session('success'))
                     <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
                         {{ session('success') }}
