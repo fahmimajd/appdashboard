@@ -68,9 +68,11 @@
             <a href="{{ route('users.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition duration-200">
                 Kembali
             </a>
+            @if(!auth()->user()->isSupervisor())
             <a href="{{ route('users.edit', $user->id) }}" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-200 shadow-md">
                 Edit User
             </a>
+            @endif
         </div>
     </div>
 </div>
