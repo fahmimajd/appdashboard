@@ -27,6 +27,10 @@ class PetugasController extends Controller
         $status_aktif = $request->status_aktif ?? 'all';
         $level_akses = $request->level_akses ?? 'all';
         $search = $request->search;
+        $kode_kecamatan = $request->kode_kecamatan ?? 'all';
+
+        // Load kecamatans for filter
+        $kecamatans = WilayahKecamatan::orderBy('nama_kecamatan')->get();
 
         $petugasDesa = collect();
         $petugasKecamatan = collect();
@@ -57,6 +61,9 @@ class PetugasController extends Controller
         if ($level_akses !== 'all') {
             $queryDesa->where('petugas.level_akses', $level_akses);
         }
+        if ($kode_kecamatan !== 'all') {
+            $queryDesa->where('petugas.kode_kecamatan', $kode_kecamatan);
+        }
         if ($search) {
             $queryDesa->leftJoin('wilayah_desa', 'petugas.kode_desa', '=', 'wilayah_desa.kode_desa')
                       ->where(function($q) use ($search) {
@@ -79,6 +86,9 @@ class PetugasController extends Controller
             if ($status_aktif !== 'all') {
                 $queryKec->where('petugas_kecamatan.status_aktif', $status_aktif);
             }
+            if ($kode_kecamatan !== 'all') {
+                $queryKec->where('petugas_kecamatan.kode_kecamatan', $kode_kecamatan);
+            }
             if ($search) {
                 $queryKec->leftJoin('wilayah_kecamatan', 'petugas_kecamatan.kode_kecamatan', '=', 'wilayah_kecamatan.kode_kecamatan')
                          ->where(function($q) use ($search) {
@@ -99,6 +109,10 @@ class PetugasController extends Controller
                 
             if ($status_aktif !== 'all') {
                 $queryDinas->where('petugas_dinas.status_aktif', $status_aktif);
+            }
+            if ($kode_kecamatan !== 'all') {
+                // Petugas Dinas does not belong to a specific kecamatan, so we exclude them if filtering by kecamatan
+                $queryDinas->whereRaw('1 = 0'); 
             }
             if ($search) {
                 $queryDinas->where(function($q) use ($search) {
@@ -131,7 +145,7 @@ class PetugasController extends Controller
             ['path' => Paginator::resolveCurrentPath(), 'query' => $request->query()]
         );
 
-        return view('petugas.index', ['petugas' => $paginatedPetugas]);
+        return view('petugas.index', ['petugas' => $paginatedPetugas, 'kecamatans' => $kecamatans]);
     }
 
     /**

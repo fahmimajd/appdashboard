@@ -6,16 +6,12 @@ use App\Models\KinerjaPetugas;
 use App\Models\Petugas;
 use App\Models\User;
 use App\Models\WilayahDesa;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class KinerjaUpdateTest extends TestCase
 {
-    // use RefreshDatabase; // Caution: Using this might wipe existing dev data if not configured correcty. Relying on manual cleanup or transaction if possible, but standard Laravel tests use this. 
-    // Given the environment, I'll avoid RefreshDatabase to be safe and manually create/delete, OR use DatabaseTransactions if available.
-    // Checking TestCase.php or phpunit.xml to see if it uses SQLite memory. It does not seem to be strictly enforced in the previous `view_file` of phpunit.xml (commented out).
-    // I will use DatabaseTransactions to be safer.
-    use \Illuminate\Foundation\Testing\DatabaseTransactions;
+    use DatabaseTransactions;
 
     public function test_kinerja_update_fails_without_hidden_fields()
     {

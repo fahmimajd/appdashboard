@@ -20,7 +20,7 @@ return new class extends Migration
                     COALESCE(p.akses, 'Pendamping') as akses,
                     COALESCE(p.status_aktif, 'Aktif') as status_aktif,
                     p.kode_desa,
-                    p.kode_kecamatan,
+                    NULL as kode_kecamatan,
                     ROW_NUMBER() OVER (PARTITION BY p.nik ORDER BY p.id DESC) as rn
                 FROM pendamping p
                 WHERE p.nik IS NOT NULL

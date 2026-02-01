@@ -13,7 +13,7 @@
                 <select name="status_aktif" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
                     <option value="all">Semua Status</option>
                     <option value="Aktif" {{ request('status_aktif') == 'Aktif' ? 'selected' : '' }}>Aktif</option>
-                    <option value="Tidak Aktif" {{ request('status_aktif') == 'Tidak Aktif' ? 'selected' : '' }}>Tidak Aktif</option>
+                    <option value="Nonaktif" {{ request('status_aktif') == 'Nonaktif' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
             </div>
             <div class="w-full md:w-32">
@@ -21,6 +21,16 @@
                     <option value="all">Semua Level</option>
                     @foreach(range(0, 5) as $lvl)
                         <option value="{{ $lvl }}" {{ request('level_akses') == (string)$lvl ? 'selected' : '' }}>Level {{ $lvl }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="w-full md:w-48">
+                <select name="kode_kecamatan" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
+                    <option value="all">Semua Kecamatan</option>
+                    @foreach($kecamatans as $kec)
+                        <option value="{{ $kec->kode_kecamatan }}" {{ request('kode_kecamatan') == $kec->kode_kecamatan ? 'selected' : '' }}>
+                            {{ $kec->nama_kecamatan }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -37,7 +47,7 @@
 
         <!-- Actions -->
         <div>
-            @if(request('search') || request('status_aktif') != 'all' || request('level_akses') != 'all')
+            @if(request('search') || request('status_aktif') != 'all' || request('level_akses') != 'all' || request('kode_kecamatan') != 'all')
                 <a href="{{ route('petugas.index') }}" class="mr-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition duration-200">
                     Reset
                 </a>

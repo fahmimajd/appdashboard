@@ -47,9 +47,9 @@
 
             <div class="w-full md:w-64">
                 <select name="desa_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
-                    <option value="all">Semua Desa</option>
+                    <option value="all" {{ request('desa_id', 'all') == 'all' ? 'selected' : '' }}>Semua Desa</option>
                     @foreach($desas as $d)
-                        <option value="{{ $d->id }}" {{ request('desa_id') == $d->id ? 'selected' : '' }}>
+                        <option value="{{ $d->kode_desa }}" {{ request('desa_id') == $d->kode_desa ? 'selected' : '' }}>
                             {{ $d->nama_desa }}
                         </option>
                     @endforeach

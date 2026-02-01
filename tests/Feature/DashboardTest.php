@@ -2,23 +2,13 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Tests\TestCase;
 
-class DashboardTest extends BaseTestCase
+class DashboardTest extends TestCase
 {
-    /**
-     * Creates the application.
-     */
-    public function createApplication()
-    {
-        $app = require __DIR__.'/../../bootstrap/app.php';
-
-        $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-
-        return $app;
-    }
+    use DatabaseTransactions;
 
     /**
      * A basic feature test example.

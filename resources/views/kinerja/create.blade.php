@@ -53,6 +53,9 @@
                                 <p class="text-xs text-gray-500 uppercase">Petugas</p>
                                 <p class="font-bold text-gray-800 mb-2" x-text="selectedPetugas.nama"></p>
                                 
+                                <p class="text-xs text-gray-500 uppercase">NIK</p>
+                                <p class="font-mono text-gray-800 mb-2" x-text="selectedPetugas.nik"></p>
+                                
                                 <p class="text-xs text-gray-500 uppercase">Desa</p>
                                 <p class="font-bold text-gray-800" x-text="selectedPetugas.desa?.nama_desa || '-'"></p>
                             </div>
@@ -128,12 +131,12 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <!-- Service Inputs -->
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <label for="aktivasi_ikd" class="block text-sm font-medium text-gray-700 mb-1">Aktivasi IKD</label>
+                            <label for="aktivasi_ikd" class="block text-sm font-medium text-gray-700 mb-1">Aktivasi IKD (bulan ini)</label>
                             <input type="number" name="aktivasi_ikd" id="aktivasi_ikd" value="{{ old('aktivasi_ikd', 0) }}" min="0" class="service-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200" oninput="calculateTotal()">
                         </div>
 
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <label for="ikd_desa" class="block text-sm font-medium text-gray-700 mb-1">Total IKD Desa</label>
+                            <label for="ikd_desa" class="block text-sm font-medium text-gray-700 mb-1">Total IKD Desa (saat ini)</label>
                             <input type="number" name="ikd_desa" id="ikd_desa" value="{{ old('ikd_desa', 0) }}" min="0" class="service-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200" oninput="calculateTotal()">
                         </div>
 
@@ -169,7 +172,7 @@
                         </div>
 
                         <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                            <label for="total_aktivasi_ikd" class="block text-sm font-medium text-blue-800 mb-1">Total Aktivasi IKD</label>
+                            <label for="total_aktivasi_ikd" class="block text-sm font-medium text-blue-800 mb-1">Total Aktivasi IKD (sampai saat ini)</label>
                             <input type="number" name="total_aktivasi_ikd" id="total_aktivasi_ikd" value="{{ old('total_aktivasi_ikd', 0) }}" min="0" class="w-full rounded-lg border-blue-300 focus:border-blue-500 focus:ring focus:ring-blue-200 font-bold text-blue-800">
                         </div>
                     </div>
