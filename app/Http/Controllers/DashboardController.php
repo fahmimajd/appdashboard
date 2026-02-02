@@ -21,11 +21,18 @@ class DashboardController extends Controller
     public function index()
     {
         // Get statistics
+        // Get previous month info for "Pelayanan Bulan [Name]"
+        $prev = now()->subMonth();
+        $prevYear = $prev->year;
+        $prevMonth = $prev->month;
+        $bulanLalu = $prev->translatedFormat('F');
+
+        // Get statistics
         $stats = [
             'total_desa' => WilayahDesa::count(),
             'total_petugas_aktif' => Petugas::where('status_aktif', 'Aktif')->count(),
             'total_pendamping_aktif' => Pendamping::where('status_aktif', 'Aktif')->distinct('nik')->count('nik'),
-            'total_pelayanan_bulan_ini' => $this->getPelayananBulanIni(),
+            'total_pelayanan_bulan_ini' => $this->getPelayananBulanLalu(),
         ];
 
         // Get recent activities
@@ -33,12 +40,10 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Get kinerja summary for current month
-        $currentYear = now()->year;
-        $currentMonth = now()->month;
+        // Get kinerja summary for PREVIOUS month
         
-        $kinerjaBulanIni = KinerjaPetugas::where('tahun', $currentYear)
-            ->where('bulan', $currentMonth)
+        $kinerjaBulanIni = KinerjaPetugas::where('tahun', $prevYear)
+            ->where('bulan', $prevMonth)
             ->with('petugas', 'desa')
             ->get();
 
@@ -83,20 +88,22 @@ class DashboardController extends Controller
             'topDesa',
             'topKecamatan',
             'kependudukanStats',
-            'exportLogs'
+            'exportLogs',
+            'bulanLalu'
         ));
     }
 
     /**
-     * Get pelayanan count for current month
+     * Get pelayanan count for PREVIOUS month
      */
-    private function getPelayananBulanIni()
+    private function getPelayananBulanLalu()
     {
-        $currentYear = now()->year;
-        $currentMonth = now()->month;
+        $prev = now()->subMonth();
+        $prevYear = $prev->year;
+        $prevMonth = $prev->month;
 
-        return KinerjaPetugas::where('tahun', $currentYear)
-            ->where('bulan', $currentMonth)
+        return KinerjaPetugas::where('tahun', $prevYear)
+            ->where('bulan', $prevMonth)
             ->sum(DB::raw(KinerjaPetugas::sqlTotalPelayanan()));
     }
 
@@ -175,15 +182,16 @@ class DashboardController extends Controller
         return response()->json($stats);
     }
     /**
-     * Display detailed monthly service statistics
+     * Display detailed monthly service statistics (Defaults to Previous Month)
      */
     public function pelayananDetail()
     {
-        $currentYear = now()->year;
-        $currentMonth = now()->month;
+        $prev = now()->subMonth();
+        $year = $prev->year;
+        $month = $prev->month;
 
-        $pageTitle = 'Detail Pelayanan Bulan Ini';
-        $period = now()->locale('id')->isoFormat('MMMM YYYY');
+        $pageTitle = 'Detail Pelayanan Bulan ' . $prev->translatedFormat('F');
+        $period = $prev->locale('id')->isoFormat('MMMM YYYY');
 
         $data = KinerjaPetugas::select(
                 'kode_desa',
@@ -195,8 +203,8 @@ class DashboardController extends Controller
                 DB::raw('SUM(pengajuan_kia) as total_pengajuan_kia'),
                 DB::raw('SUM(' . KinerjaPetugas::sqlTotalPelayanan() . ') as total_pelayanan')
             )
-            ->where('tahun', $currentYear)
-            ->where('bulan', $currentMonth)
+            ->where('tahun', $year)
+            ->where('bulan', $month)
             ->with('desa.kecamatan')
             ->groupBy('kode_desa')
             ->orderByDesc('total_pelayanan')

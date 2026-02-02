@@ -55,6 +55,15 @@ class KinerjaController extends Controller
      */
     public function index(Request $request)
     {
+        // Default filter: Previous month if no filter is applied
+        if (!$request->has('bulan') && !$request->has('tahun') && !$request->has('desa_id')) {
+            $prev = Carbon::now()->subMonth();
+            $request->merge([
+                'bulan' => $prev->month,
+                'tahun' => $prev->year
+            ]);
+        }
+
         $query = KinerjaPetugas::with(['petugas', 'desa.kecamatan']);
 
         if ($request->has('bulan') && $request->bulan != 'all') {
@@ -122,7 +131,12 @@ class KinerjaController extends Controller
 
         $petugas = $petugasQuery->orderBy('nama')->get();
         
-        return view('kinerja.create', compact('petugas', 'desas'));
+        // Default to previous month
+        $prev = Carbon::now()->subMonth();
+        $defaultBulan = $prev->month;
+        $defaultTahun = $prev->year;
+
+        return view('kinerja.create', compact('petugas', 'desas', 'defaultBulan', 'defaultTahun'));
     }
     
     /**

@@ -109,7 +109,7 @@
                         <label for="bulan" class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
                         <select name="bulan" id="bulan" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200" required>
                             @foreach(range(1, 12) as $m)
-                                <option value="{{ $m }}" {{ old('bulan', date('n')) == $m ? 'selected' : '' }}>{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
+                                <option value="{{ $m }}" {{ old('bulan', $defaultBulan ?? date('n')) == $m ? 'selected' : '' }}>{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
                             @endforeach
                         </select>
                         @error('bulan')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
@@ -118,7 +118,7 @@
                         <label for="tahun" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
                         <select name="tahun" id="tahun" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200" required>
                             @for($y = date('Y'); $y >= 2020; $y--)
-                                <option value="{{ $y }}" {{ old('tahun', date('Y')) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                <option value="{{ $y }}" {{ old('tahun', $defaultTahun ?? date('Y')) == $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
                         </select>
                         @error('tahun')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror

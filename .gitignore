@@ -20,6 +20,9 @@ Thumbs.db
 db.md
 readme.md
 
+# Database backups (private data)
+/database/backups
+
 /storage/framework/cache/data/*
 /storage/framework/sessions/*
 /storage/framework/testing/*

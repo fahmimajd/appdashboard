@@ -50,7 +50,7 @@
         <a href="{{ route('dashboard.pelayanan-detail') }}" class="bg-gradient-to-br from-orange-500 to-orange-700 text-white rounded-xl p-6 shadow-lg transform transition hover:scale-105">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm opacity-90">Pelayanan Bulan Ini</p>
+                    <p class="text-sm opacity-90">Pelayanan Bulan {{ $bulanLalu }}</p>
                     <h3 class="text-3xl font-bold mt-2">{{ number_format($stats['total_pelayanan_bulan_ini']) }}</h3>
                 </div>
                 <svg class="w-12 h-12 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
