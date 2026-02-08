@@ -49,8 +49,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/desa/{kodeDesa}/detail', [WilayahController::class, 'show'])->name('desa.detail');
     });
     
-    // Pendamping Management (Admin only)
-    Route::middleware('role:Admin')->prefix('pendamping')->name('pendamping.')->group(function () {
+    // Pendamping Management (Admin and Supervisor)
+    Route::middleware('role:Admin|Supervisor')->prefix('pendamping')->name('pendamping.')->group(function () {
         Route::get('/', [PendampingController::class, 'index'])->name('index');
         Route::get('/create', [PendampingController::class, 'create'])->name('create');
         Route::post('/', [PendampingController::class, 'store'])->name('store');
@@ -150,14 +150,25 @@ Route::middleware('auth')->group(function () {
     // Belum Rekam
     Route::get('sasaran/rekapitulasi', [\App\Http\Controllers\BelumRekamController::class, 'rekapitulasi'])->name('sasaran.rekapitulasi');
     Route::get('belum-rekam/export', [\App\Http\Controllers\BelumRekamController::class, 'export'])->name('belum_rekam.export');
+    Route::get('belum-rekam/pending', [\App\Http\Controllers\BelumRekamController::class, 'pending'])->name('belum_rekam.pending');
+    Route::post('belum-rekam/{nik}/approve-field', [\App\Http\Controllers\BelumRekamController::class, 'approveField'])->name('belum_rekam.approve-field');
+    Route::post('belum-rekam/{nik}/reject-field', [\App\Http\Controllers\BelumRekamController::class, 'rejectField'])->name('belum_rekam.reject-field');
+    Route::post('belum-rekam/{nik}/approve-all', [\App\Http\Controllers\BelumRekamController::class, 'approveAll'])->name('belum_rekam.approve-all');
+    Route::post('belum-rekam/{nik}/reject-all', [\App\Http\Controllers\BelumRekamController::class, 'rejectAll'])->name('belum_rekam.reject-all');
     Route::resource('belum-rekam', \App\Http\Controllers\BelumRekamController::class)
-        ->only(['index'])
+        ->only(['index', 'edit', 'update'])
         ->names('belum_rekam');
+
 
     // Belum Akte
     Route::get('belum-akte/export', [\App\Http\Controllers\BelumAkteController::class, 'export'])->name('belum_akte.export');
+    Route::get('belum-akte/pending', [\App\Http\Controllers\BelumAkteController::class, 'pending'])->name('belum_akte.pending');
+    Route::post('belum-akte/{nik}/approve-field', [\App\Http\Controllers\BelumAkteController::class, 'approveField'])->name('belum_akte.approve-field');
+    Route::post('belum-akte/{nik}/reject-field', [\App\Http\Controllers\BelumAkteController::class, 'rejectField'])->name('belum_akte.reject-field');
+    Route::post('belum-akte/{nik}/approve-all', [\App\Http\Controllers\BelumAkteController::class, 'approveAll'])->name('belum_akte.approve-all');
+    Route::post('belum-akte/{nik}/reject-all', [\App\Http\Controllers\BelumAkteController::class, 'rejectAll'])->name('belum_akte.reject-all');
     Route::resource('belum-akte', \App\Http\Controllers\BelumAkteController::class)
-        ->only(['index'])
+        ->only(['index', 'edit', 'update'])
         ->names('belum_akte');
 
     // API endpoints for AJAX requests

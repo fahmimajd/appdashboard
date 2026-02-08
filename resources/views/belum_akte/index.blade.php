@@ -5,9 +5,23 @@
 
 @section('content')
 <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 h-full flex flex-col">
+    @if(session('success'))
+        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('info'))
+        <div class="mb-4 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg">
+            {{ session('info') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {{ session('error') }}
+        </div>
+    @endif
     <!-- Header Tools - Fixed -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 flex-shrink-0">
-        <!-- Filter & Search -->
         <!-- Filter & Search -->
         <form action="{{ route('belum_akte.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 flex-1">
             <div class="w-full md:w-64">
@@ -55,6 +69,17 @@
         <!-- Actions -->
         <div class="flex gap-2">
             @if(!auth()->user()->isPetugas())
+                @php
+                    $pendingCount = \App\Http\Controllers\BelumAkteController::getPendingCount();
+                @endphp
+                @if($pendingCount > 0)
+                    <a href="{{ route('belum_akte.pending') }}" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-200 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Pending ({{ $pendingCount }})
+                    </a>
+                @endif
                 <a href="{{ route('belum_akte.export', request()->query()) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -83,23 +108,44 @@
                     <th class="px-4 py-3">Desa</th>
                     <th class="px-4 py-3">Kecamatan</th>
                     <th class="px-4 py-3">Keterangan</th>
+                    <th class="px-4 py-3">No Akta Kelahiran</th>
+                    @if(!auth()->user()->isSupervisor())
+                        <th class="px-4 py-3 text-center">Aksi</th>
+                    @endif
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($data as $item)
-                    <tr class="hover:bg-gray-50 transition duration-150">
+                    <tr class="hover:bg-gray-50 transition duration-150 {{ $item->hasPendingApproval() ? 'bg-yellow-50' : '' }}">
                         <td class="px-4 py-3 text-sm text-gray-500 text-center">{{ ($data->currentPage() - 1) * $data->perPage() + $loop->iteration }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500 font-mono">{{ $item->nik }}</td>
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $item->nama_lgkp }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                            {{ $item->nama_lgkp }}
+                            @if($item->hasPendingApproval())
+                                <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-yellow-200 text-yellow-800 rounded-full">Pending</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->jenis_klmin }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->tgl_lhr }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->desa->nama_desa ?? '-' }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->kecamatan->nama_kecamatan ?? '-' }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->keterangan }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ $item->no_akta_kelahiran ?? '-' }}</td>
+                        @if(!auth()->user()->isSupervisor())
+                            <td class="px-4 py-3 text-center">
+                                <a href="{{ route('belum_akte.edit', $item->nik) }}" 
+                                    class="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition duration-200 text-sm">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    Edit
+                                </a>
+                            </td>
+                        @endif
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                        <td colspan="10" class="px-4 py-8 text-center text-gray-500">
                             Tidak ada data belum akte.
                         </td>
                     </tr>

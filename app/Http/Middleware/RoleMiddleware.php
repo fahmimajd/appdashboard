@@ -13,14 +13,17 @@ class RoleMiddleware
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string $roles): Response
     {
         if (!$request->user()) {
             return redirect()->route('login');
         }
 
+        $allowedRoles = explode('|', $roles);
+        $userRole = $request->user()->akses;
+
         // Check if user has required access level
-        if ($role === 'Admin' && $request->user()->akses !== 'Admin') {
+        if (!in_array($userRole, $allowedRoles)) {
             abort(403, 'Unauthorized action.');
         }
 

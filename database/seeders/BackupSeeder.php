@@ -25,6 +25,12 @@ class BackupSeeder extends Seeder
         'kependudukan_semester',
         'sarpras_desa',
         'vpn_desa',
+        'header_pelayanan',
+        'sasaran',
+        'belum_rekam',
+        'belum_akte',
+        'kinerja_approval_logs',
+        'export_logs',
     ];
 
     protected string $backupPath;

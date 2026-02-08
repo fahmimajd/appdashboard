@@ -39,6 +39,10 @@ class PendampingController extends Controller
      */
     public function create()
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $desas = WilayahDesa::orderBy('nama_desa')->get();
         return view('pendamping.create', compact('desas'));
     }
@@ -48,6 +52,10 @@ class PendampingController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $validated = $request->validate([
             'nik' => [
                 'required', 
@@ -121,6 +129,10 @@ class PendampingController extends Controller
      */
     public function edit($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $pendamping = Pendamping::findOrFail($id);
         $desas = WilayahDesa::orderBy('nama_desa')->get();
         return view('pendamping.edit', compact('pendamping', 'desas'));
@@ -131,6 +143,10 @@ class PendampingController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $pendamping = Pendamping::findOrFail($id);
         $user = User::where('nik', $pendamping->nik)->first();
 
@@ -217,6 +233,10 @@ class PendampingController extends Controller
      */
     public function destroy($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $pendamping = Pendamping::findOrFail($id);
         
         // Prevent deleting yourself
