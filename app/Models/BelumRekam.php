@@ -22,20 +22,18 @@ class BelumRekam extends Model
     ];
     
     protected $fillable = [
-        'NIK',
-        'NAMA_LGKP',
-        'JENIS_KLM',
-        'TMPT_LHR',
-        'TGL_LHR',
-        'WKTP_KET',
-        'KODE_KECAMATAN',
-        'KODE_DESA',
-        'KETERANGAN',
-        'KET_DISABILITAS',
-        'CURRENT_STATUS_CODE',
-        // Proposed values for approval workflow
+        'nik',
+        'nama_lgkp',
+        'jenis_klm',
+        'tmpt_lhr',
+        'tgl_lhr',
+        'wktp_ket',
+        'kode_kecamatan',
+        'kode_desa',
+        'keterangan',
+        'ket_disabilitas',
+        'current_status_code',
         'keterangan_proposed',
-        // Approval metadata
         'has_pending_approval',
         'last_proposed_at',
         'last_proposed_by',

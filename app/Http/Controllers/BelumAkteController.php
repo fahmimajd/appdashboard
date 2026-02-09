@@ -212,8 +212,9 @@ class BelumAkteController extends Controller
         
         // Petugas can only edit data in their desa
         if ($user->isPetugas()) {
-            $userDesaPadded = str_pad(trim($user->kode_desa), 20, ' ');
-            if ($data->getOriginal('kode_desa') !== $userDesaPadded) {
+            $userDesa = trim($user->kode_desa);
+            $dataDesa = trim($data->getOriginal('kode_desa'));
+            if ($dataDesa !== $userDesa) {
                 return back()->with('error', 'Anda hanya dapat mengedit data di desa Anda.');
             }
         }

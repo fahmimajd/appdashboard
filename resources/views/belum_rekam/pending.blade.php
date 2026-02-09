@@ -63,7 +63,7 @@
                         <p class="text-sm text-gray-500 font-mono">NIK: {{ $item->nik }}</p>
                         <p class="text-sm text-gray-500">{{ $item->desa->nama_desa ?? '-' }} • {{ $item->kecamatan->nama_kecamatan ?? '-' }}</p>
                         <p class="text-xs text-gray-400 mt-1">
-                            Diajukan: {{ $item->last_proposed_at ? $item->last_proposed_at->diffForHumans() : '-' }}
+                            Diajukan: {{ $item->last_proposed_at ? \Carbon\Carbon::parse($item->last_proposed_at)->diffForHumans() : '-' }}
                             @if($item->proposer)
                                 oleh {{ $item->proposer->nama ?? $item->proposer->nik }}
                             @endif

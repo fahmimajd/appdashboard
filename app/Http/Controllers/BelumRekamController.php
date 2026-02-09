@@ -11,6 +11,7 @@ use App\Models\WilayahKecamatan;
 use App\Models\Pendamping;
 use App\Models\ExportLog;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 
 class BelumRekamController extends Controller
@@ -162,12 +163,15 @@ class BelumRekamController extends Controller
 
         $summaryData = $summaryQuery->with('kecamatan')->withCount([
             'belumRekam as belum_rekam_count' => function ($query) use ($request) {
+                $query->where('keterangan', 'BLM_RKM_KTP');
                 if ($request->status) {
                     $query->where('wktp_ket', $request->status);
                 }
             },
-            'belumAkte as belum_akte_count'
-        ])->orderBy('nama_desa')->get();
+            'belumAkte as belum_akte_count' => function ($query) {
+                $query->where('keterangan', 'BLM_MMLK_AKTA_LHR');
+            }
+        ])->orderBy('kode_desa')->get();
 
         return view('sasaran.rekapitulasi', compact('summaryData', 'kecamatans'));
     }
@@ -287,12 +291,13 @@ class BelumRekamController extends Controller
             return back()->with('error', 'Supervisor tidak dapat mengedit data.');
         }
 
-        $data = BelumRekam::with(['desa', 'kecamatan'])->where('nik', $nik)->firstOrFail();
+        $data = BelumRekam::with(['desa', 'kecamatan'])->whereRaw('TRIM(NIK) = ?', [trim($nik)])->firstOrFail();
         
         // Petugas can only edit data in their desa
         if ($user->isPetugas()) {
-            $userDesaPadded = str_pad(trim($user->kode_desa), 20, ' ');
-            if ($data->getOriginal('kode_desa') !== $userDesaPadded) {
+            $userDesaCode = trim($user->kode_desa);
+            $dataDesaCode = trim($data->getOriginal('kode_desa'));
+            if ($dataDesaCode !== $userDesaCode) {
                 return back()->with('error', 'Anda hanya dapat mengedit data di desa Anda.');
             }
         }
@@ -319,23 +324,36 @@ class BelumRekamController extends Controller
             'keterangan' => 'required|in:BLM_RKM_KTP,SDH_RKM_KTP',
         ]);
 
-        $data = BelumRekam::where('nik', $nik)->firstOrFail();
+        $data = BelumRekam::whereRaw('TRIM(NIK) = ?', [trim($nik)])->firstOrFail();
+        
+        // Petugas access check
+        if ($user->isPetugas()) {
+            $userDesaCode = trim($user->kode_desa);
+            $dataDesaCode = trim($data->getOriginal('kode_desa'));
+            if ($dataDesaCode !== $userDesaCode) {
+                return back()->with('error', 'Anda hanya dapat mengedit data di desa Anda.');
+            }
+        }
         
         // Petugas: save to proposed fields (pending approval)
         if ($user->isPetugas()) {
             $hasChanges = false;
+            $updateData = [];
             
             // Check keterangan
-            if ($request->keterangan !== $data->keterangan) {
-                $data->keterangan_proposed = $request->keterangan;
+            if ($request->keterangan !== trim($data->keterangan ?? '')) {
+                $updateData['KETERANGAN_PROPOSED'] = $request->keterangan;
                 $hasChanges = true;
             }
             
             if ($hasChanges) {
-                $data->has_pending_approval = true;
-                $data->last_proposed_at = Carbon::now();
-                $data->last_proposed_by = $user->nik;
-                $data->save();
+                $updateData['HAS_PENDING_APPROVAL'] = 1;
+                $updateData['LAST_PROPOSED_AT'] = Carbon::now();
+                $updateData['LAST_PROPOSED_BY'] = $user->nik;
+                
+                DB::table('BELUM_REKAM')
+                    ->whereRaw('TRIM(NIK) = ?', [trim($nik)])
+                    ->update($updateData);
                 
                 return redirect()->route('belum_rekam.index')
                     ->with('success', 'Perubahan berhasil diajukan. Menunggu approval dari Admin/Pendamping.');
@@ -346,9 +364,9 @@ class BelumRekamController extends Controller
         }
 
         // Admin/Pendamping: Apply changes directly
-        $data->update([
-            'keterangan' => $request->keterangan,
-        ]);
+        DB::table('BELUM_REKAM')
+            ->whereRaw('TRIM(NIK) = ?', [trim($nik)])
+            ->update(['KETERANGAN' => $request->keterangan]);
 
         return redirect()->route('belum_rekam.index')
             ->with('success', 'Data berhasil diperbarui.');
@@ -373,8 +391,11 @@ class BelumRekamController extends Controller
         $allowedDesaCodes = $this->getAllowedDesaCodes();
         if ($allowedDesaCodes !== null) {
             if (!empty($allowedDesaCodes)) {
-                $paddedCodes = array_map(fn($code) => str_pad($code, 20, ' '), $allowedDesaCodes);
-                $query->whereIn('kode_desa', $paddedCodes);
+                $query->where(function($q) use ($allowedDesaCodes) {
+                    foreach ($allowedDesaCodes as $code) {
+                        $q->orWhereRaw('TRIM(kode_desa) = ?', [trim($code)]);
+                    }
+                });
             } else {
                 $query->whereRaw('1 = 0');
             }
@@ -401,7 +422,7 @@ class BelumRekamController extends Controller
             'field_name' => 'required|string|in:' . implode(',', BelumRekam::$approvableFields),
         ]);
 
-        $data = BelumRekam::where('nik', $nik)->firstOrFail();
+        $data = BelumRekam::whereRaw('TRIM(NIK) = ?', [trim($nik)])->firstOrFail();
         $fieldName = $validated['field_name'];
         $proposedField = $fieldName . '_proposed';
         
@@ -414,7 +435,7 @@ class BelumRekamController extends Controller
 
         // Create log entry
         BelumRekamApprovalLog::create([
-            'belum_rekam_nik' => $data->nik,
+            'belum_rekam_nik' => trim($data->nik),
             'field_name' => $fieldName,
             'old_value' => $oldValue,
             'proposed_value' => $proposedValue,
@@ -424,10 +445,25 @@ class BelumRekamController extends Controller
             'action_by' => $user->nik,
         ]);
 
-        // Apply the change
-        $data->$fieldName = $proposedValue;
-        $data->$proposedField = null;
-        $data->updatePendingFlag();
+        // Apply the change using DB::table
+        $updateData = [
+            strtoupper($fieldName) => $proposedValue,
+            strtoupper($proposedField) => null,
+        ];
+        
+        // Check if any other proposed fields exist
+        $hasPending = false;
+        foreach (BelumRekam::$approvableFields as $field) {
+            if ($field !== $fieldName && $data->{$field . '_proposed'} !== null) {
+                $hasPending = true;
+                break;
+            }
+        }
+        $updateData['HAS_PENDING_APPROVAL'] = $hasPending ? 1 : 0;
+        
+        DB::table('BELUM_REKAM')
+            ->whereRaw('TRIM(NIK) = ?', [trim($nik)])
+            ->update($updateData);
 
         $fieldLabel = BelumRekamApprovalLog::$fieldLabels[$fieldName] ?? $fieldName;
         return back()->with('success', "Field {$fieldLabel} berhasil di-approve.");
@@ -449,7 +485,7 @@ class BelumRekamController extends Controller
             'rejection_reason' => 'nullable|string|max:500',
         ]);
 
-        $data = BelumRekam::where('nik', $nik)->firstOrFail();
+        $data = BelumRekam::whereRaw('TRIM(NIK) = ?', [trim($nik)])->firstOrFail();
         $fieldName = $validated['field_name'];
         $proposedField = $fieldName . '_proposed';
         
@@ -462,7 +498,7 @@ class BelumRekamController extends Controller
 
         // Create log entry for rejection
         BelumRekamApprovalLog::create([
-            'belum_rekam_nik' => $data->nik,
+            'belum_rekam_nik' => trim($data->nik),
             'field_name' => $fieldName,
             'old_value' => $oldValue,
             'proposed_value' => $proposedValue,
@@ -473,9 +509,24 @@ class BelumRekamController extends Controller
             'rejection_reason' => $validated['rejection_reason'] ?? null,
         ]);
 
-        // Clear the proposed value (keep original)
-        $data->$proposedField = null;
-        $data->updatePendingFlag();
+        // Clear the proposed value using DB::table
+        $updateData = [
+            strtoupper($proposedField) => null,
+        ];
+        
+        // Check if any other proposed fields exist
+        $hasPending = false;
+        foreach (BelumRekam::$approvableFields as $field) {
+            if ($field !== $fieldName && $data->{$field . '_proposed'} !== null) {
+                $hasPending = true;
+                break;
+            }
+        }
+        $updateData['HAS_PENDING_APPROVAL'] = $hasPending ? 1 : 0;
+        
+        DB::table('BELUM_REKAM')
+            ->whereRaw('TRIM(NIK) = ?', [trim($nik)])
+            ->update($updateData);
 
         $fieldLabel = BelumRekamApprovalLog::$fieldLabels[$fieldName] ?? $fieldName;
         return back()->with('rejected', "Perubahan {$fieldLabel} ditolak. Nilai tetap menggunakan nilai lama.");
@@ -492,20 +543,21 @@ class BelumRekamController extends Controller
             return back()->with('error', 'Anda tidak memiliki hak akses untuk melakukan approval.');
         }
 
-        $data = BelumRekam::where('nik', $nik)->firstOrFail();
+        $data = BelumRekam::whereRaw('TRIM(NIK) = ?', [trim($nik)])->firstOrFail();
         $pendingFields = $data->getPendingFields();
         
         if (empty($pendingFields)) {
             return back()->with('error', 'Tidak ada perubahan yang menunggu approval.');
         }
 
+        $updateData = [];
         foreach ($pendingFields as $fieldName) {
             $proposedField = $fieldName . '_proposed';
             $oldValue = $data->$fieldName;
             $proposedValue = $data->$proposedField;
 
             BelumRekamApprovalLog::create([
-                'belum_rekam_nik' => $data->nik,
+                'belum_rekam_nik' => trim($data->nik),
                 'field_name' => $fieldName,
                 'old_value' => $oldValue,
                 'proposed_value' => $proposedValue,
@@ -515,12 +567,15 @@ class BelumRekamController extends Controller
                 'action_by' => $user->nik,
             ]);
 
-            $data->$fieldName = $proposedValue;
-            $data->$proposedField = null;
+            $updateData[strtoupper($fieldName)] = $proposedValue;
+            $updateData[strtoupper($proposedField)] = null;
         }
 
-        $data->has_pending_approval = false;
-        $data->save();
+        $updateData['HAS_PENDING_APPROVAL'] = 0;
+        
+        DB::table('BELUM_REKAM')
+            ->whereRaw('TRIM(NIK) = ?', [trim($nik)])
+            ->update($updateData);
 
         return back()->with('success', 'Semua perubahan berhasil di-approve.');
     }
@@ -540,20 +595,21 @@ class BelumRekamController extends Controller
             'rejection_reason' => 'nullable|string|max:500',
         ]);
 
-        $data = BelumRekam::where('nik', $nik)->firstOrFail();
+        $data = BelumRekam::whereRaw('TRIM(NIK) = ?', [trim($nik)])->firstOrFail();
         $pendingFields = $data->getPendingFields();
         
         if (empty($pendingFields)) {
             return back()->with('error', 'Tidak ada perubahan yang menunggu approval.');
         }
 
+        $updateData = [];
         foreach ($pendingFields as $fieldName) {
             $proposedField = $fieldName . '_proposed';
             $oldValue = $data->$fieldName;
             $proposedValue = $data->$proposedField;
 
             BelumRekamApprovalLog::create([
-                'belum_rekam_nik' => $data->nik,
+                'belum_rekam_nik' => trim($data->nik),
                 'field_name' => $fieldName,
                 'old_value' => $oldValue,
                 'proposed_value' => $proposedValue,
@@ -564,11 +620,14 @@ class BelumRekamController extends Controller
                 'rejection_reason' => $validated['rejection_reason'] ?? null,
             ]);
 
-            $data->$proposedField = null;
+            $updateData[strtoupper($proposedField)] = null;
         }
 
-        $data->has_pending_approval = false;
-        $data->save();
+        $updateData['HAS_PENDING_APPROVAL'] = 0;
+        
+        DB::table('BELUM_REKAM')
+            ->whereRaw('TRIM(NIK) = ?', [trim($nik)])
+            ->update($updateData);
 
         return back()->with('rejected', 'Semua perubahan ditolak. Nilai tetap menggunakan nilai lama.');
     }
@@ -596,8 +655,11 @@ class BelumRekamController extends Controller
                 ->toArray();
             
             if (!empty($desaCodes)) {
-                $paddedCodes = array_map(fn($code) => str_pad($code, 20, ' '), $desaCodes);
-                $query->whereIn('kode_desa', $paddedCodes);
+                $query->where(function($q) use ($desaCodes) {
+                    foreach ($desaCodes as $code) {
+                        $q->orWhereRaw('TRIM(kode_desa) = ?', [trim($code)]);
+                    }
+                });
             } else {
                 return 0;
             }

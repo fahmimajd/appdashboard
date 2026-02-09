@@ -112,11 +112,27 @@
                         <a href="{{ route('sasaran.rekapitulasi') }}" class="block px-3 py-2 rounded-md text-sm {{ request()->routeIs('sasaran.rekapitulasi') ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
                             Rekapitulasi
                         </a>
-                        <a href="{{ route('belum_rekam.index') }}" class="block px-3 py-2 rounded-md text-sm {{ request()->routeIs('belum_rekam.*') ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
-                            Belum Rekam KTP-EL
+                        <a href="{{ route('belum_rekam.index') }}" class="px-3 py-2 rounded-md text-sm flex items-center justify-between {{ request()->routeIs('belum_rekam.*') ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
+                            <span>Belum Rekam KTP-EL</span>
+                            @php
+                                $belumRekamPendingCount = \App\Http\Controllers\BelumRekamController::getPendingCount();
+                            @endphp
+                            @if($belumRekamPendingCount > 0 && !auth()->user()->isPetugas())
+                            <span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                                {{ $belumRekamPendingCount }}
+                            </span>
+                            @endif
                         </a>
-                        <a href="{{ route('belum_akte.index') }}" class="block px-3 py-2 rounded-md text-sm {{ request()->routeIs('belum_akte.*') ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
-                            Belum Akte Kelahiran
+                        <a href="{{ route('belum_akte.index') }}" class="px-3 py-2 rounded-md text-sm flex items-center justify-between {{ request()->routeIs('belum_akte.*') ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
+                            <span>Belum Akte Kelahiran</span>
+                            @php
+                                $belumAktePendingCount = \App\Http\Controllers\BelumAkteController::getPendingCount();
+                            @endphp
+                            @if($belumAktePendingCount > 0 && !auth()->user()->isPetugas())
+                            <span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                                {{ $belumAktePendingCount }}
+                            </span>
+                            @endif
                         </a>
                     </div>
                 </div>
