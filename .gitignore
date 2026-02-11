@@ -34,3 +34,5 @@ readme.md
 !/storage/framework/testing/.gitignore
 !/storage/framework/views/.gitignore
 !/storage/logs/.gitignore
+
+storage/app/public/belum_akte_dokumen/*
