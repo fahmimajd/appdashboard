@@ -38,6 +38,7 @@ class BelumAkte extends Model
         'has_pending_approval',
         'last_proposed_at',
         'last_proposed_by',
+        'dokumen_path',
     ];
 
     protected $casts = [

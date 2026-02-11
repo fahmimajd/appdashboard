@@ -109,6 +109,7 @@
                     <th class="px-4 py-3">Kecamatan</th>
                     <th class="px-4 py-3">Keterangan</th>
                     <th class="px-4 py-3">No Akta Kelahiran</th>
+                    <th class="px-4 py-3 text-center">Dokumen</th>
                     @if(!auth()->user()->isSupervisor())
                         <th class="px-4 py-3 text-center">Aksi</th>
                     @endif
@@ -131,6 +132,55 @@
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->kecamatan->nama_kecamatan ?? '-' }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->keterangan }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $item->no_akta_kelahiran ?? '-' }}</td>
+                        <td class="px-4 py-3 text-center">
+                            @if($item->dokumen_path)
+                                {{-- Has document: show preview & download buttons --}}
+                                <div class="flex items-center justify-center gap-1">
+                                    <button type="button" onclick="openPreview('{{ asset('storage/' . $item->dokumen_path) }}', '{{ $item->nama_lgkp }}')"
+                                        class="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition duration-200 text-xs" title="Preview">
+                                        <svg class="w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        Lihat
+                                    </button>
+                                    <a href="{{ route('belum_akte.download-dokumen', trim($item->nik)) }}"
+                                        class="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition duration-200 text-xs" title="Download">
+                                        <svg class="w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        </svg>
+                                        Unduh
+                                    </a>
+                                    @if(!auth()->user()->isSupervisor())
+                                        <form action="{{ route('belum_akte.delete-dokumen', trim($item->nik)) }}" method="POST" class="inline"
+                                              onsubmit="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="inline-flex items-center px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition duration-200 text-xs" title="Hapus Dokumen">
+                                                <svg class="w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @else
+                                {{-- No document: show upload button --}}
+                                @if(!auth()->user()->isSupervisor())
+                                    <button type="button" onclick="openUploadModal('{{ trim($item->nik) }}', '{{ $item->nama_lgkp }}')"
+                                        class="inline-flex items-center px-2.5 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition duration-200 text-xs">
+                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                        </svg>
+                                        Upload
+                                    </button>
+                                @else
+                                    <span class="text-xs text-gray-400">Belum ada</span>
+                                @endif
+                            @endif
+                        </td>
                         @if(!auth()->user()->isSupervisor())
                             <td class="px-4 py-3 text-center">
                                 <a href="{{ route('belum_akte.edit', $item->nik) }}" 
@@ -145,7 +195,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-8 text-center text-gray-500">
+                        <td colspan="11" class="px-4 py-8 text-center text-gray-500">
                             Tidak ada data belum akte.
                         </td>
                     </tr>
@@ -159,4 +209,198 @@
         {{ $data->links() }}
     </div>
 </div>
+
 @endsection
+
+@push('modals')
+{{-- Upload Modal --}}
+<div id="uploadModal" class="fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-50" style="display:none">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Upload Dokumen</h3>
+            <button type="button" onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Upload dokumen untuk: <strong id="uploadNamaLgkp"></strong></p>
+        <form id="uploadForm" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File (JPG/JPEG, max 1MB)</label>
+                <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition duration-200 cursor-pointer">
+                    <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    <p class="text-sm text-gray-500">Klik atau seret file ke sini</p>
+                    <p class="text-xs text-gray-400 mt-1">Format: JPG/JPEG • Maks: 1MB</p>
+                    <input type="file" name="dokumen" id="dokumenInput" accept=".jpg,.jpeg" class="hidden">
+                </div>
+                <div id="filePreviewArea" class="hidden mt-3">
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <img id="filePreviewImg" src="" alt="Preview" class="w-16 h-16 object-cover rounded">
+                        <div class="flex-1 min-w-0">
+                            <p id="fileName" class="text-sm font-medium text-gray-700 truncate"></p>
+                            <p id="fileSize" class="text-xs text-gray-500"></p>
+                        </div>
+                        <button type="button" onclick="clearFileInput()" class="text-red-500 hover:text-red-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeUploadModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200">
+                    Batal
+                </button>
+                <button type="submit" id="uploadSubmitBtn" disabled class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    Upload
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Preview Modal --}}
+<div id="previewModal" class="fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-75" style="display:none">
+    <div class="relative max-w-3xl w-full mx-4">
+        <button type="button" onclick="closePreview()" class="absolute -top-10 right-0 text-white hover:text-gray-300 transition">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <p id="previewTitle" class="text-white text-center mb-3 text-sm font-medium"></p>
+        <img id="previewImage" src="" alt="Preview" class="max-w-full max-h-[80vh] mx-auto rounded-lg shadow-2xl">
+    </div>
+</div>
+@endpush
+
+@push('scripts')
+<script>
+    var _dropZone, _dokumenInput;
+
+    // Upload Modal
+    function openUploadModal(nik, namaLgkp) {
+        var modal = document.getElementById('uploadModal');
+        var form = document.getElementById('uploadForm');
+        document.getElementById('uploadNamaLgkp').textContent = namaLgkp;
+        form.action = '/belum-akte/' + nik + '/upload-dokumen';
+        clearFileInput();
+        modal.style.display = 'flex';
+    }
+
+    function closeUploadModal() {
+        var modal = document.getElementById('uploadModal');
+        modal.style.display = 'none';
+        clearFileInput();
+    }
+
+    function handleFileSelect(file) {
+        var allowed = ['image/jpeg'];
+        if (allowed.indexOf(file.type) === -1) {
+            alert('Format file harus JPG/JPEG.');
+            clearFileInput();
+            return;
+        }
+        if (file.size > 1024 * 1024) {
+            alert('Ukuran file maksimal 1MB.');
+            clearFileInput();
+            return;
+        }
+
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('filePreviewImg').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+
+        document.getElementById('filePreviewArea').style.display = 'block';
+        if (_dropZone) _dropZone.style.display = 'none';
+        document.getElementById('uploadSubmitBtn').disabled = false;
+    }
+
+    function clearFileInput() {
+        if (_dokumenInput) _dokumenInput.value = '';
+        document.getElementById('filePreviewArea').style.display = 'none';
+        if (_dropZone) _dropZone.style.display = 'block';
+        document.getElementById('uploadSubmitBtn').disabled = true;
+    }
+
+    // Preview Modal
+    function openPreview(imageUrl, namaLgkp) {
+        var modal = document.getElementById('previewModal');
+        document.getElementById('previewImage').src = imageUrl;
+        document.getElementById('previewTitle').textContent = 'Dokumen: ' + namaLgkp;
+        modal.style.display = 'flex';
+    }
+
+    function closePreview() {
+        var modal = document.getElementById('previewModal');
+        modal.style.display = 'none';
+        document.getElementById('previewImage').src = '';
+    }
+
+    // Initialize after DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        _dropZone = document.getElementById('dropZone');
+        _dokumenInput = document.getElementById('dokumenInput');
+
+        if (_dropZone && _dokumenInput) {
+            _dropZone.addEventListener('click', function() { _dokumenInput.click(); });
+            _dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                _dropZone.classList.add('border-purple-500', 'bg-purple-50');
+            });
+            _dropZone.addEventListener('dragleave', function() {
+                _dropZone.classList.remove('border-purple-500', 'bg-purple-50');
+            });
+            _dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                _dropZone.classList.remove('border-purple-500', 'bg-purple-50');
+                if (e.dataTransfer.files.length) {
+                    _dokumenInput.files = e.dataTransfer.files;
+                    handleFileSelect(_dokumenInput.files[0]);
+                }
+            });
+
+            _dokumenInput.addEventListener('change', function(e) {
+                if (e.target.files.length) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+        }
+
+        // Close modals on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeUploadModal();
+                closePreview();
+            }
+        });
+
+        // Close modals on backdrop click
+        var uploadModal = document.getElementById('uploadModal');
+        var previewModal = document.getElementById('previewModal');
+        if (uploadModal) {
+            uploadModal.addEventListener('click', function(e) {
+                if (e.target === e.currentTarget) closeUploadModal();
+            });
+        }
+        if (previewModal) {
+            previewModal.addEventListener('click', function(e) {
+                if (e.target === e.currentTarget) closePreview();
+            });
+        }
+    });
+</script>
+@endpush
+

@@ -10,6 +10,7 @@ use App\Models\WilayahKecamatan;
 use App\Models\Pendamping;
 use App\Models\ExportLog;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class BelumAkteController extends Controller
 {
@@ -501,6 +502,77 @@ class BelumAkteController extends Controller
         $data->save();
 
         return back()->with('rejected', 'Semua perubahan ditolak. Nilai tetap menggunakan nilai lama.');
+    }
+
+    /**
+     * Upload dokumen for a record
+     */
+    public function uploadDokumen(Request $request, $nik)
+    {
+        $user = auth()->user();
+
+        if ($user->isSupervisor()) {
+            return back()->with('error', 'Supervisor tidak dapat mengupload dokumen.');
+        }
+
+        $request->validate([
+            'dokumen' => 'required|file|mimes:jpg,jpeg|max:1024',
+        ], [
+            'dokumen.required' => 'File dokumen wajib diupload.',
+            'dokumen.mimes' => 'Format file harus JPG/JPEG.',
+            'dokumen.max' => 'Ukuran file maksimal 1MB.',
+        ]);
+
+        $data = BelumAkte::where('nik', $nik)->firstOrFail();
+
+        // Delete old file if exists
+        if ($data->dokumen_path && Storage::disk('public')->exists($data->dokumen_path)) {
+            Storage::disk('public')->delete($data->dokumen_path);
+        }
+
+        $file = $request->file('dokumen');
+        $filename = trim($nik) . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('belum_akte_dokumen', $filename, 'public');
+
+        $data->update(['dokumen_path' => $path]);
+
+        return back()->with('success', 'Dokumen berhasil diupload.');
+    }
+
+    /**
+     * Download dokumen for a record
+     */
+    public function downloadDokumen($nik)
+    {
+        $data = BelumAkte::where('nik', $nik)->firstOrFail();
+
+        if (!$data->dokumen_path || !Storage::disk('public')->exists($data->dokumen_path)) {
+            return back()->with('error', 'Dokumen tidak ditemukan.');
+        }
+
+        return Storage::disk('public')->download($data->dokumen_path);
+    }
+
+    /**
+     * Delete dokumen for a record
+     */
+    public function deleteDokumen($nik)
+    {
+        $user = auth()->user();
+
+        if ($user->isSupervisor()) {
+            return back()->with('error', 'Supervisor tidak dapat menghapus dokumen.');
+        }
+
+        $data = BelumAkte::where('nik', $nik)->firstOrFail();
+
+        if ($data->dokumen_path && Storage::disk('public')->exists($data->dokumen_path)) {
+            Storage::disk('public')->delete($data->dokumen_path);
+        }
+
+        $data->update(['dokumen_path' => null]);
+
+        return back()->with('success', 'Dokumen berhasil dihapus.');
     }
 
     /**

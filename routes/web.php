@@ -167,6 +167,9 @@ Route::middleware('auth')->group(function () {
     Route::post('belum-akte/{nik}/reject-field', [\App\Http\Controllers\BelumAkteController::class, 'rejectField'])->name('belum_akte.reject-field');
     Route::post('belum-akte/{nik}/approve-all', [\App\Http\Controllers\BelumAkteController::class, 'approveAll'])->name('belum_akte.approve-all');
     Route::post('belum-akte/{nik}/reject-all', [\App\Http\Controllers\BelumAkteController::class, 'rejectAll'])->name('belum_akte.reject-all');
+    Route::post('belum-akte/{nik}/upload-dokumen', [\App\Http\Controllers\BelumAkteController::class, 'uploadDokumen'])->name('belum_akte.upload-dokumen');
+    Route::get('belum-akte/{nik}/download-dokumen', [\App\Http\Controllers\BelumAkteController::class, 'downloadDokumen'])->name('belum_akte.download-dokumen');
+    Route::delete('belum-akte/{nik}/delete-dokumen', [\App\Http\Controllers\BelumAkteController::class, 'deleteDokumen'])->name('belum_akte.delete-dokumen');
     Route::resource('belum-akte', \App\Http\Controllers\BelumAkteController::class)
         ->only(['index', 'edit', 'update'])
         ->names('belum_akte');

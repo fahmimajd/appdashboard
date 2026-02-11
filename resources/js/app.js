@@ -4,6 +4,15 @@ import Chart from 'chart.js/auto';
 
 // Initialize Alpine.js
 window.Alpine = Alpine;
+
+// Register Alpine data components BEFORE starting Alpine
+Alpine.data('sidebar', () => ({
+    open: true,
+    toggle() {
+        this.open = !this.open;
+    }
+}));
+
 Alpine.start();
 
 // Make Chart.js available globally
@@ -34,9 +43,9 @@ window.utils = {
     toast(message, type = 'success') {
         const toast = document.createElement('div');
         toast.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' :
-                type === 'error' ? 'bg-red-500' :
-                    type === 'warning' ? 'bg-yellow-500' :
-                        'bg-blue-500'
+            type === 'error' ? 'bg-red-500' :
+                type === 'warning' ? 'bg-yellow-500' :
+                    'bg-blue-500'
             } z-50 transition-opacity duration-300`;
         toast.textContent = message;
         document.body.appendChild(toast);
