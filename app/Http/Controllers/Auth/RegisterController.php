@@ -40,7 +40,7 @@ class RegisterController extends Controller
                 // 1. Create User Account
                 $user = User::create([
                     'nik' => $validated['nik'],
-                    'nama' => $validated['nama'],
+                    'nama' => strtoupper($validated['nama']),
                     'password' => Hash::make($validated['password']),
                     'akses' => 'Petugas',
                     'status_aktif' => 'Aktif',
@@ -50,7 +50,7 @@ class RegisterController extends Controller
                 // 2. Create Petugas Kecamatan Data
                 PetugasKecamatan::create([
                     'nik' => $validated['nik'],
-                    'nama' => $validated['nama'],
+                    'nama' => strtoupper($validated['nama']),
                     'nomor_ponsel' => $validated['nomor_ponsel'],
                     'kode_kecamatan' => $validated['kode_kecamatan'],
                     'status_aktif' => 'Aktif',
