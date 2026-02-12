@@ -19,7 +19,7 @@ class PetugasKecamatan extends Model
         'nomor_ponsel',
         'jenis_kelamin',
         'status_aktif',
-        'tanggal_mulai_aktif',
+        'tanggal_mulai_akses',
         'bcard',
         'benroller',
         'kode_kecamatan',

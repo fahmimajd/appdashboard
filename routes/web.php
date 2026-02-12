@@ -24,6 +24,13 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
+    
+    // Registration
+    Route::get('/register', [\App\Http\Controllers\Auth\RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [\App\Http\Controllers\Auth\RegisterController::class, 'register'])->name('register.store');
+    Route::get('/register/success', function () {
+        return view('auth.register_success');
+    })->name('register.success');
 });
 
 // Authenticated routes
@@ -104,6 +111,32 @@ Route::middleware('auth')->group(function () {
         Route::post('/{id}/reject-field', [KinerjaController::class, 'rejectField'])->name('reject-field');
         Route::post('/{id}/approve-all', [KinerjaController::class, 'approveAll'])->name('approve-all');
         Route::post('/{id}/reject-all', [KinerjaController::class, 'rejectAll'])->name('reject-all');
+    });
+
+
+    // Kinerja Kecamatan (Harian)
+    Route::get('kinerja-kecamatan/rekap', [\App\Http\Controllers\KinerjaKecamatanController::class, 'rekap'])->name('kinerja-kecamatan.rekap');
+    Route::resource('kinerja-kecamatan', \App\Http\Controllers\KinerjaKecamatanController::class);
+
+    // Management Barang
+    Route::prefix('management-barang')->name('management-barang.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ManagementBarangController::class, 'dashboard'])->name('dashboard');
+        
+        // Admin Only Routes
+        Route::middleware('role:Admin')->group(function() {
+            Route::get('/master', [\App\Http\Controllers\ManagementBarangController::class, 'masterIndex'])->name('master');
+            Route::post('/master', [\App\Http\Controllers\ManagementBarangController::class, 'masterStore'])->name('master.store');
+            Route::put('/master/{id}', [\App\Http\Controllers\ManagementBarangController::class, 'masterUpdate'])->name('master.update');
+            Route::delete('/master/{id}', [\App\Http\Controllers\ManagementBarangController::class, 'masterDestroy'])->name('master.destroy');
+            
+            Route::get('/stok-masuk', [\App\Http\Controllers\ManagementBarangController::class, 'stokMasuk'])->name('stok-masuk');
+            Route::post('/stok-masuk', [\App\Http\Controllers\ManagementBarangController::class, 'storeStokMasuk'])->name('stok-masuk.store');
+            
+            Route::get('/distribusi', [\App\Http\Controllers\ManagementBarangController::class, 'distribusi'])->name('distribusi');
+            Route::post('/distribusi', [\App\Http\Controllers\ManagementBarangController::class, 'storeDistribusi'])->name('distribusi.store');
+        });
+
+        Route::get('/riwayat', [\App\Http\Controllers\ManagementBarangController::class, 'riwayat'])->name('riwayat');
     });
     
     // Kependudukan
