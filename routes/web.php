@@ -213,5 +213,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/desa/{kodeKecamatan}', [WilayahController::class, 'apiDesa'])->name('desa');
         Route::get('/stats/dashboard', [DashboardController::class, 'apiStats'])->name('stats.dashboard');
         Route::get('/kinerja/chart/{year}', [KinerjaController::class, 'apiChartData'])->name('kinerja.chart');
+        Route::get('/kinerja/prev-total-ikd', [KinerjaController::class, 'apiPrevTotalIkd'])->name('kinerja.prev-total-ikd');
     });
 });

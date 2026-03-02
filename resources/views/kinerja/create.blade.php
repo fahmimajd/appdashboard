@@ -90,6 +90,8 @@
                                     this.selectedPetugas = p;
                                     this.search = p.nama; // Set input to name
                                     this.open = false;
+                                    // Trigger prev total IKD fetch
+                                    this.$nextTick(() => { if(typeof fetchPrevTotalIkd === 'function') fetchPrevTotalIkd(); });
                                 },
 
                                 init() {
@@ -171,9 +173,18 @@
                             <p class="text-xs text-gray-500 mt-1">Tidak dihitung dalam total pelayanan</p>
                         </div>
 
-                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100" id="total_ikd_container">
                             <label for="total_aktivasi_ikd" class="block text-sm font-medium text-blue-800 mb-1">Total Aktivasi IKD (sampai saat ini)</label>
-                            <input type="number" name="total_aktivasi_ikd" id="total_aktivasi_ikd" value="{{ old('total_aktivasi_ikd', 0) }}" min="0" class="w-full rounded-lg border-blue-300 focus:border-blue-500 focus:ring focus:ring-blue-200 font-bold text-blue-800">
+                            <!-- Manual input (shown when no prev data or petugas not selected) -->
+                            <div id="total_ikd_manual">
+                                <input type="number" name="total_aktivasi_ikd" id="total_aktivasi_ikd" value="{{ old('total_aktivasi_ikd', 0) }}" min="0" class="w-full rounded-lg border-blue-300 focus:border-blue-500 focus:ring focus:ring-blue-200 font-bold text-blue-800">
+                                <p class="text-xs text-blue-600 mt-1">Akan dihitung otomatis jika data bulan sebelumnya sudah ada. Jika belum, isi manual.</p>
+                            </div>
+                            <!-- Auto preview (shown when prev data exists) -->
+                            <div id="total_ikd_auto" style="display:none;">
+                                <p class="text-2xl font-bold text-blue-800" id="total_ikd_preview">0</p>
+                                <p class="text-xs text-blue-600 mt-1" id="total_ikd_info">Dihitung otomatis dari total bulan sebelumnya + aktivasi bulan ini</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -195,6 +206,10 @@
 </div>
 
 <script>
+// === Previous Month IKD State ===
+let prevTotalIkd = 0;
+let hasPrevData = false;
+
 function calculateTotal() {
     let inputs = document.querySelectorAll('.service-input');
     let total = 0;
@@ -207,9 +222,61 @@ function calculateTotal() {
     
     document.getElementById('total_display').innerText = total;
     document.getElementById('total_pelayanan').value = total;
+
+    // Update total IKD preview
+    updateTotalIkdPreview();
 }
 
-// Initial calculation on load
-document.addEventListener('DOMContentLoaded', calculateTotal);
+function updateTotalIkdPreview() {
+    const aktivasiIkd = parseInt(document.getElementById('aktivasi_ikd').value) || 0;
+    const manualDiv = document.getElementById('total_ikd_manual');
+    const autoDiv = document.getElementById('total_ikd_auto');
+
+    if (hasPrevData) {
+        const totalIkd = prevTotalIkd + aktivasiIkd;
+        document.getElementById('total_ikd_preview').innerText = totalIkd;
+        document.getElementById('total_ikd_info').innerText = 
+            `Otomatis: ${prevTotalIkd} (bulan sebelumnya) + ${aktivasiIkd} (bulan ini) = ${totalIkd}`;
+        manualDiv.style.display = 'none';
+        autoDiv.style.display = 'block';
+    } else {
+        manualDiv.style.display = 'block';
+        autoDiv.style.display = 'none';
+    }
+}
+
+function fetchPrevTotalIkd() {
+    const nikPetugas = document.querySelector('input[name="petugas_id"]').value;
+    const kodeDesa = document.querySelector('input[name="desa_id"]').value;
+    const bulan = document.getElementById('bulan').value;
+    const tahun = document.getElementById('tahun').value;
+
+    if (!nikPetugas || !kodeDesa || !bulan || !tahun) {
+        hasPrevData = false;
+        prevTotalIkd = 0;
+        updateTotalIkdPreview();
+        return;
+    }
+
+    fetch(`{{ route('api.kinerja.prev-total-ikd') }}?nik_petugas=${nikPetugas}&kode_desa=${kodeDesa}&bulan=${bulan}&tahun=${tahun}`)
+        .then(r => r.json())
+        .then(data => {
+            hasPrevData = data.has_prev_data;
+            prevTotalIkd = data.prev_total_ikd || 0;
+            updateTotalIkdPreview();
+        })
+        .catch(() => {
+            hasPrevData = false;
+            prevTotalIkd = 0;
+            updateTotalIkdPreview();
+        });
+}
+
+// Listen for bulan/tahun changes to re-fetch
+document.addEventListener('DOMContentLoaded', function() {
+    calculateTotal();
+    document.getElementById('bulan').addEventListener('change', fetchPrevTotalIkd);
+    document.getElementById('tahun').addEventListener('change', fetchPrevTotalIkd);
+});
 </script>
 @endsection

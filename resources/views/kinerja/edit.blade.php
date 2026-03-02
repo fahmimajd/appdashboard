@@ -89,7 +89,13 @@
                 </div>
                  <div class="bg-blue-50 p-2 rounded border border-blue-100">
                     <label class="block text-xs font-semibold text-blue-800 uppercase mb-1">Total Aktivasi IKD</label>
-                    <input type="number" min="0" name="total_aktivasi_ikd" value="{{ old('total_aktivasi_ikd', $kinerja->total_aktivasi_ikd ?? 0) }}" class="w-full rounded border-blue-300 font-bold text-blue-800">
+                    @if($hasPrevData)
+                        <p class="text-lg font-bold text-blue-800">{{ $kinerja->total_aktivasi_ikd ?? 0 }}</p>
+                        <p class="text-xs text-blue-600">Dihitung otomatis (total bulan sebelumnya + aktivasi bulan ini)</p>
+                    @else
+                        <input type="number" min="0" name="total_aktivasi_ikd" value="{{ old('total_aktivasi_ikd', $kinerja->total_aktivasi_ikd ?? 0) }}" class="w-full rounded border-blue-300 font-bold text-blue-800">
+                        <p class="text-xs text-blue-600 mt-1">Data bulan sebelumnya belum ada, isi manual.</p>
+                    @endif
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Akta Kelahiran</label>

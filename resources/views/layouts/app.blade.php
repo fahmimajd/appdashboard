@@ -74,7 +74,8 @@
                 </a>
                 @endif
 
-                {{-- Permit Kinerja for Petugas as well --}}
+                {{-- Permit Kinerja for Petugas as well, but hide for Petugas Kecamatan --}}
+                @if(!auth()->user()->isPetugas() || auth()->user()->kode_desa)
                 <a href="{{ route('kinerja.index') }}" class="sidebar-link {{ request()->routeIs('kinerja.*') ? 'active' : '' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 00-2-2m0 0h2a2 2 0 012 2v6a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
@@ -86,6 +87,7 @@
                     </span>
                     @endif
                 </a>
+                @endif
 
                 {{-- Hide Kinerja Kecamatan for Pendamping AND Petugas Desa (who have kode_desa) --}}
                 @if(!auth()->user()->isPendamping() && !(auth()->user()->isPetugas() && auth()->user()->kode_desa))
@@ -116,6 +118,7 @@
                 @endif
 
                 <!-- Sasaran Menu -->
+                @if(!auth()->user()->isPetugas() || auth()->user()->kode_desa)
                 <div x-data="{ sasaranOpen: {{ request()->routeIs('belum_rekam.*') || request()->routeIs('belum_akte.*') ? 'true' : 'false' }} }">
                     <button @click="sasaranOpen = !sasaranOpen" class="sidebar-link w-full flex justify-between items-center {{ request()->routeIs('belum_rekam.*') || request()->routeIs('belum_akte.*') ? 'active' : '' }}">
                         <div class="flex items-center">
@@ -156,6 +159,7 @@
                         </a>
                     </div>
                 </div>
+                @endif
 
                 {{--
                 <a href="{{ route('pelayanan.index') }}" class="sidebar-link {{ request()->routeIs('pelayanan.*') ? 'active' : '' }}">

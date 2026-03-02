@@ -181,9 +181,22 @@ class KinerjaController extends Controller
         }
         $validated['total_pelayanan'] = $total;
 
-        // Calculate total_aktivasi_ikd - MANUAL INPUT
-        if (!isset($validated['total_aktivasi_ikd'])) {
-            $validated['total_aktivasi_ikd'] = 0;
+        // Auto-calculate total_aktivasi_ikd jika data bulan sebelumnya ada
+        $prevMonth = Carbon::create($validated['tahun'], $validated['bulan'], 1)->subMonth();
+        $prevKinerja = KinerjaPetugas::where('nik_petugas', $validated['petugas_id'])
+            ->where('kode_desa', $validated['desa_id'])
+            ->where('tahun', $prevMonth->year)
+            ->where('bulan', $prevMonth->month)
+            ->first();
+
+        if ($prevKinerja) {
+            // Auto-calculate: prev total + current aktivasi
+            $validated['total_aktivasi_ikd'] = ($prevKinerja->total_aktivasi_ikd ?? 0) + ($validated['aktivasi_ikd'] ?? 0);
+        } else {
+            // Fallback: use manual input, default to 0
+            if (!isset($validated['total_aktivasi_ikd'])) {
+                $validated['total_aktivasi_ikd'] = 0;
+            }
         }
 
         // Check if data already exists for this petugas+bulan+tahun
@@ -240,8 +253,16 @@ class KinerjaController extends Controller
         }
 
         $petugas = $petugasQuery->get();
+
+        // Check if previous month data exists (for auto-calc total_aktivasi_ikd)
+        $prevMonth = Carbon::create($kinerja->tahun, $kinerja->bulan, 1)->subMonth();
+        $hasPrevData = KinerjaPetugas::where('nik_petugas', $kinerja->nik_petugas)
+            ->where('kode_desa', $kinerja->kode_desa)
+            ->where('tahun', $prevMonth->year)
+            ->where('bulan', $prevMonth->month)
+            ->exists();
         
-        return view('kinerja.edit', compact('kinerja', 'petugas', 'desas'));
+        return view('kinerja.edit', compact('kinerja', 'petugas', 'desas', 'hasPrevData'));
     }
 
     /**
@@ -289,6 +310,7 @@ class KinerjaController extends Controller
             $approvableFields = KinerjaPetugas::$approvableFields;
             
             foreach ($approvableFields as $field) {
+                if ($field === 'total_aktivasi_ikd') continue; // auto-calculated on approve
                 $newValue = $validated[$field] ?? 0;
                 $currentValue = $kinerja->$field ?? 0;
                 
@@ -317,9 +339,26 @@ class KinerjaController extends Controller
         // Pendamping/Admin/Supervisor: Apply changes directly
         $dataToUpdate = [];
         foreach (KinerjaPetugas::$approvableFields as $field) {
+            if ($field === 'total_aktivasi_ikd') continue; // auto-calculated below
             if (isset($validated[$field])) {
                 $dataToUpdate[$field] = $validated[$field];
             }
+        }
+
+        // Auto-calculate total_aktivasi_ikd jika data bulan sebelumnya ada
+        $prevMonth = Carbon::create($kinerja->tahun, $kinerja->bulan, 1)->subMonth();
+        $prevKinerja = KinerjaPetugas::where('nik_petugas', $kinerja->nik_petugas)
+            ->where('kode_desa', $kinerja->kode_desa)
+            ->where('tahun', $prevMonth->year)
+            ->where('bulan', $prevMonth->month)
+            ->first();
+
+        if ($prevKinerja) {
+            $aktivasiIkd = $dataToUpdate['aktivasi_ikd'] ?? $kinerja->aktivasi_ikd ?? 0;
+            $dataToUpdate['total_aktivasi_ikd'] = ($prevKinerja->total_aktivasi_ikd ?? 0) + $aktivasiIkd;
+        } elseif (isset($validated['total_aktivasi_ikd'])) {
+            // Fallback: manual input if prev data doesn't exist
+            $dataToUpdate['total_aktivasi_ikd'] = $validated['total_aktivasi_ikd'];
         }
         
         $kinerja->update($dataToUpdate);
@@ -404,6 +443,18 @@ class KinerjaController extends Controller
         // Apply the change
         $kinerja->$fieldName = $proposedValue;
         $kinerja->$proposedField = null;
+
+        // If aktivasi_ikd was approved, recalculate total_aktivasi_ikd
+        if ($fieldName === 'aktivasi_ikd') {
+            $prevMonth = Carbon::create($kinerja->tahun, $kinerja->bulan, 1)->subMonth();
+            $prevTotalIkd = KinerjaPetugas::where('nik_petugas', $kinerja->nik_petugas)
+                ->where('kode_desa', $kinerja->kode_desa)
+                ->where('tahun', $prevMonth->year)
+                ->where('bulan', $prevMonth->month)
+                ->value('total_aktivasi_ikd') ?? 0;
+            $kinerja->total_aktivasi_ikd = $prevTotalIkd + ($proposedValue ?? 0);
+        }
+
         $kinerja->updatePendingFlag();
 
         $fieldLabel = KinerjaApprovalLog::$fieldLabels[$fieldName] ?? $fieldName;
@@ -497,6 +548,15 @@ class KinerjaController extends Controller
             $kinerja->$fieldName = $proposedValue;
             $kinerja->$proposedField = null;
         }
+
+        // Recalculate total_aktivasi_ikd after approving all
+        $prevMonth = Carbon::create($kinerja->tahun, $kinerja->bulan, 1)->subMonth();
+        $prevTotalIkd = KinerjaPetugas::where('nik_petugas', $kinerja->nik_petugas)
+            ->where('kode_desa', $kinerja->kode_desa)
+            ->where('tahun', $prevMonth->year)
+            ->where('bulan', $prevMonth->month)
+            ->value('total_aktivasi_ikd') ?? 0;
+        $kinerja->total_aktivasi_ikd = $prevTotalIkd + ($kinerja->aktivasi_ikd ?? 0);
 
         $kinerja->has_pending_approval = false;
         $kinerja->save();
@@ -715,5 +775,31 @@ class KinerjaController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * API: Get previous month's total_aktivasi_ikd for live preview
+     */
+    public function apiPrevTotalIkd(Request $request)
+    {
+        $validated = $request->validate([
+            'nik_petugas' => 'required|string',
+            'kode_desa' => 'required|string',
+            'bulan' => 'required|integer|min:1|max:12',
+            'tahun' => 'required|integer|min:2020',
+        ]);
+
+        $prevMonth = Carbon::create($validated['tahun'], $validated['bulan'], 1)->subMonth();
+        $prevKinerja = KinerjaPetugas::where('nik_petugas', $validated['nik_petugas'])
+            ->where('kode_desa', $validated['kode_desa'])
+            ->where('tahun', $prevMonth->year)
+            ->where('bulan', $prevMonth->month)
+            ->first();
+
+        return response()->json([
+            'has_prev_data' => $prevKinerja !== null,
+            'prev_total_ikd' => $prevKinerja->total_aktivasi_ikd ?? 0,
+            'prev_periode' => $prevKinerja ? Carbon::create()->month($prevMonth->month)->translatedFormat('F') . ' ' . $prevMonth->year : null,
+        ]);
     }
 }
