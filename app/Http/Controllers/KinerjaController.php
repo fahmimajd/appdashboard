@@ -16,12 +16,14 @@ class KinerjaController extends Controller
     /**
      * Helper to get accessible desas based on user role
      */
-    private function getAccessibleDesas()
+    private function getAccessibleDesas($modeDesa = 'semua')
     {
         $user = auth()->user();
         
         if ($user->isAdmin() || $user->isSupervisor()) {
-            return WilayahDesa::orderBy('nama_desa')->get();
+            if ($modeDesa !== 'pendampingan') {
+                return WilayahDesa::orderBy('nama_desa')->get();
+            }
         }
         
         // Petugas: only sees their assigned desa
@@ -94,9 +96,24 @@ class KinerjaController extends Controller
                     $query->whereIn('kode_desa', $desaCodes);
                 }
             }
-        } elseif ($request->has('desa_id') && $request->desa_id != 'all') {
-             // Admin/Supervisor can filter by desa
-            $query->where('kode_desa', $request->desa_id);
+        } else {
+            // Admin/Supervisor
+            if ($request->input('mode_desa') === 'pendampingan') {
+                $desaCodes = Pendamping::where('nik', $user->nik)
+                    ->where('status_aktif', 'Aktif')
+                    ->pluck('kode_desa')
+                    ->filter()
+                    ->toArray();
+                
+                if (!empty($desaCodes)) {
+                    $query->whereIn('kode_desa', $desaCodes);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            } elseif ($request->has('desa_id') && $request->desa_id != 'all') {
+                 // Admin/Supervisor can filter by desa
+                $query->where('kode_desa', $request->desa_id);
+            }
         }
 
         $kinerjas = $query->orderBy('tahun', 'desc')
@@ -105,7 +122,7 @@ class KinerjaController extends Controller
                           ->paginate(15)
                           ->withQueryString();
                           
-        $desas = $this->getAccessibleDesas();
+        $desas = $this->getAccessibleDesas($request->input('mode_desa', 'semua'));
         
         return view('kinerja.index', compact('kinerjas', 'desas'));
     }
@@ -710,8 +727,23 @@ class KinerjaController extends Controller
             if (!empty($desaCodes)) {
                 $query->whereIn('kode_desa', $desaCodes);
             }
-        } elseif ($request->has('desa_id') && $request->desa_id != 'all') {
-            $query->where('kode_desa', $request->desa_id);
+        } else {
+             // Admin/Supervisor
+            if ($request->input('mode_desa') === 'pendampingan') {
+                $desaCodes = Pendamping::where('nik', $user->nik)
+                    ->where('status_aktif', 'Aktif')
+                    ->pluck('kode_desa')
+                    ->filter()
+                    ->toArray();
+                
+                if (!empty($desaCodes)) {
+                    $query->whereIn('kode_desa', $desaCodes);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            } elseif ($request->has('desa_id') && $request->desa_id != 'all') {
+                $query->where('kode_desa', $request->desa_id);
+            }
         }
 
         $kinerjas = $query->orderBy('tahun', 'desc')

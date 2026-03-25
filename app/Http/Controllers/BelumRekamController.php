@@ -19,12 +19,14 @@ class BelumRekamController extends Controller
     /**
      * Helper to get allowed desa codes for current user
      */
-    private function getAllowedDesaCodes()
+    private function getAllowedDesaCodes($modeDesa = 'semua')
     {
         $user = auth()->user();
         
         if ($user->isAdmin() || $user->isSupervisor()) {
-            return null; // null means all desas allowed
+            if ($modeDesa !== 'pendampingan') {
+                return null; // null means all desas allowed
+            }
         }
         
         if ($user->isPetugas()) {
@@ -47,7 +49,7 @@ class BelumRekamController extends Controller
     {
         $query = BelumRekam::with(['desa', 'kecamatan']);
         $user = auth()->user();
-        $allowedDesaCodes = $this->getAllowedDesaCodes();
+        $allowedDesaCodes = $this->getAllowedDesaCodes($request->input('mode_desa', 'semua'));
 
         // Access Control Logic
         if ($allowedDesaCodes !== null) {
@@ -145,6 +147,15 @@ class BelumRekamController extends Controller
                     ->toArray();
             }
         } else {
+            // Admin/Supervisor
+            if ($request->input('mode_desa') === 'pendampingan') {
+                $allowedDesaCodes = Pendamping::where('nik', $user->nik)
+                    ->where('status_aktif', 'Aktif')
+                    ->pluck('kode_desa')
+                    ->map(fn($code) => trim($code))
+                    ->filter()
+                    ->toArray();
+            }
             // Only fetch kecamatans for Admin/Supervisor
              $kecamatans = WilayahKecamatan::orderBy('nama_kecamatan')->get();
         }
@@ -168,8 +179,17 @@ class BelumRekamController extends Controller
                     $query->where('wktp_ket', $request->status);
                 }
             },
+            'belumRekam as sudah_rekam_count' => function ($query) use ($request) {
+                $query->where('keterangan', 'SDH_RKM_KTP');
+                if ($request->status) {
+                    $query->where('wktp_ket', $request->status);
+                }
+            },
             'belumAkte as belum_akte_count' => function ($query) {
                 $query->where('keterangan', 'BLM_MMLK_AKTA_LHR');
+            },
+            'belumAkte as sudah_akte_count' => function ($query) {
+                $query->where('keterangan', 'SUDAH MEMILIKI_AKTA_LHR');
             }
         ])->orderBy('kode_desa')->get();
 
@@ -185,7 +205,7 @@ class BelumRekamController extends Controller
         }
 
         $query = BelumRekam::with(['desa', 'kecamatan']);
-        $allowedDesaCodes = $this->getAllowedDesaCodes();
+        $allowedDesaCodes = $this->getAllowedDesaCodes($request->input('mode_desa', 'semua'));
 
         // Role-based filtering
         if ($allowedDesaCodes !== null) {

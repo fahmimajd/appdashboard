@@ -25,6 +25,14 @@
         <!-- Filter & Search -->
         <!-- Filter & Search -->
         <form action="{{ route('belum_rekam.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 flex-1">
+            @if(auth()->user()->isAdmin() || auth()->user()->isSupervisor())
+            <div class="w-full md:w-64">
+                <select name="mode_desa" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
+                    <option value="semua" {{ request('mode_desa', 'semua') == 'semua' ? 'selected' : '' }}>Semua Desa</option>
+                    <option value="pendampingan" {{ request('mode_desa') == 'pendampingan' ? 'selected' : '' }}>Hanya Desa Pendampingan</option>
+                </select>
+            </div>
+            @endif
             <div class="w-full md:w-64">
                 <select name="kode_kecamatan" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
                     <option value="">Semua Kecamatan</option>

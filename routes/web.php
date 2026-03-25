@@ -12,6 +12,7 @@ use App\Http\Controllers\PelayananController;
 use App\Http\Controllers\SarprasController;
 use App\Http\Controllers\VpnController;
 use App\Http\Controllers\SasaranController;
+use App\Http\Controllers\AdminActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,7 +35,7 @@ Route::middleware('guest')->group(function () {
 });
 
 // Authenticated routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'log-admin'])->group(function () {
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     
@@ -206,6 +207,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('belum-akte', \App\Http\Controllers\BelumAkteController::class)
         ->only(['index', 'edit', 'update'])
         ->names('belum_akte');
+
+    // Admin Activity Log (Admin only)
+    Route::middleware('role:Admin')->prefix('admin-log')->name('admin-log.')->group(function () {
+        Route::get('/', [AdminActivityLogController::class, 'index'])->name('index');
+    });
 
     // API endpoints for AJAX requests
     Route::prefix('api')->name('api.')->group(function () {

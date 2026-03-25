@@ -155,7 +155,32 @@ class DashboardController extends Controller
             }
         }
 
-        // For Admin/Supervisor: show top kecamatan
+        // For Admin/Supervisor
+        $desaCodes = [];
+        if ($user->isAdmin() || $user->isSupervisor()) {
+            $desaCodes = Pendamping::where('nik', $user->nik)
+                ->where('status_aktif', 'Aktif')
+                ->pluck('kode_desa')
+                ->filter()
+                ->toArray();
+        }
+
+        if (!empty($desaCodes)) {
+             // For Admin/Supervisor with pendampingan: show top desa among their pendampingan villages
+             return WilayahDesa::addSelect(['total_pelayanan' => KinerjaPetugas::selectRaw(
+                    'COALESCE(SUM(' . KinerjaPetugas::sqlTotalPelayanan() . '), 0)'
+                )
+                ->whereColumn('kode_desa', 'wilayah_desa.kode_desa')
+                ->where('tahun', $currentYear)
+            ])
+            ->whereIn('kode_desa', $desaCodes)
+            ->with('kecamatan')
+            ->orderByDesc('total_pelayanan')
+            ->limit($limit)
+            ->get();
+        }
+
+        // Default behavior: show top kecamatan
         return WilayahKecamatan::addSelect(['total_pelayanan' => KinerjaPetugas::selectRaw(
                 'COALESCE(SUM(' . KinerjaPetugas::sqlTotalPelayanan() . '), 0)'
             )

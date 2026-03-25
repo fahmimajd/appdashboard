@@ -100,7 +100,11 @@
                     <thead>
                         <tr>
                             <th>Ranking</th>
-                            <th>Kecamatan</th>
+                            @if(auth()->user()->isAdmin() || auth()->user()->isSupervisor())
+                                <th>Desa</th>
+                            @else
+                                <th>Kecamatan</th>
+                            @endif
                             <th>Total</th>
                         </tr>
                     </thead>

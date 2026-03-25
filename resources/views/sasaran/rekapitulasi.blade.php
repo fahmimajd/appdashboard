@@ -10,6 +10,14 @@
         <h3 class="text-lg font-semibold text-gray-800">Data Sasaran Per Desa</h3>
         
         <form action="{{ route('sasaran.rekapitulasi') }}" method="GET" class="flex flex-col md:flex-row gap-4 w-full">
+            @if(auth()->user()->isAdmin() || auth()->user()->isSupervisor())
+            <div class="w-full md:w-64">
+                <select name="mode_desa" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
+                    <option value="semua" {{ request('mode_desa', 'semua') == 'semua' ? 'selected' : '' }}>Semua Desa</option>
+                    <option value="pendampingan" {{ request('mode_desa') == 'pendampingan' ? 'selected' : '' }}>Hanya Desa Pendampingan</option>
+                </select>
+            </div>
+            @endif
             @if(!empty($kecamatans) && count($kecamatans) > 0)
             <div class="w-full md:w-64">
                 <select name="kode_kecamatan" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-200">
@@ -49,7 +57,9 @@
                     <th class="px-4 py-2">Nama Kecamatan</th>
                     <th class="px-4 py-2">Nama Desa</th>
                     <th class="px-4 py-2 text-center w-32">Belum Rekam KTP-EL</th>
+                    <th class="px-4 py-2 text-center w-32">Sudah Rekam KTP-EL</th>
                     <th class="px-4 py-2 text-center w-32">Belum Akte Kelahiran</th>
+                    <th class="px-4 py-2 text-center w-32">Sudah Akte Kelahiran</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -59,7 +69,9 @@
                     <td class="px-4 py-2 text-sm text-gray-700">{{ $desa->kecamatan->nama_kecamatan ?? '-' }}</td>
                     <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $desa->nama_desa }}</td>
                     <td class="px-4 py-2 text-sm text-gray-700 text-center">{{ number_format($desa->belum_rekam_count) }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-700 text-center">{{ number_format($desa->sudah_rekam_count) }}</td>
                     <td class="px-4 py-2 text-sm text-gray-700 text-center">{{ number_format($desa->belum_akte_count) }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-700 text-center">{{ number_format($desa->sudah_akte_count) }}</td>
                 </tr>
                 @endforeach
             </tbody>
